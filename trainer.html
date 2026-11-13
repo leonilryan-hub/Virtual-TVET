@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trainer Page — Virtual TVET Access Lock</title>
+<style>
+  :root{--navy:#0b2a5b;--blue:#1f5fbf;--gold:#f2b705;--red:#c8102e;--green:#2e9d5b;--ink:#1b2333;--muted:#5b6578;--paper:#fffdf7;--line:#e3ddd0}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;font-family:"Segoe UI",Roboto,system-ui,-apple-system,sans-serif;color:var(--ink)}
+  header.top{background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:5px solid var(--gold)}
+  header.top .ic{font-size:26px}
+  header.top h1{margin:0;font-size:18px}
+  header.top p{margin:2px 0 0;font-size:12.5px;color:var(--gold)}
+  header.top .sp{flex:1}
+  main{max-width:820px;margin:0 auto;padding:14px}
+  .card{background:var(--paper);border:2px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 3px 0 rgba(0,0,0,.06)}
+  h2{margin:0 0 10px;color:var(--navy);font-size:18px}
+  h3{margin:16px 0 8px;color:var(--navy);font-size:15px}
+  label{display:block;font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px}
+  input,select{font:inherit;padding:10px 12px;border:2px solid var(--line);border-radius:10px;width:100%;background:#fff}
+  input:focus{outline:none;border-color:var(--blue)}
+  .btn{font:inherit;font-weight:800;border:0;border-radius:10px;padding:10px 14px;background:var(--blue);color:#fff;cursor:pointer;box-shadow:0 3px 0 #123f85}
+  .btn.gold{background:var(--gold);color:var(--navy);box-shadow:0 3px 0 #b88a00}
+  .btn.alt{background:#fff;color:var(--navy);border:2px solid var(--line);box-shadow:none}
+  .btn.red{background:var(--red);box-shadow:0 3px 0 #8a0b1f}
+  .btn.sm{padding:7px 10px;font-size:13px}
+  .btn:disabled{opacity:.55;cursor:wait}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:140px}
+  .err,.ok{border-radius:10px;padding:9px 12px;font-size:14px;margin-top:10px}
+  .err{background:#fde8eb;color:#8a0b1f;border:1px solid #f3b6c0}
+  .ok{background:#e6f6ec;color:#1d6b3d;border:1px solid #9fd8b2}
+  .muted{color:var(--muted);font-size:13px}
+  .tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .tab{font:inherit;font-weight:800;border:2px solid var(--line);background:#fff;color:var(--navy);border-radius:999px;padding:8px 14px;cursor:pointer}
+  .tab.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .hidden{display:none!important}
+  /* QR */
+  .qrwrap{text-align:center}
+  #qrCv{width:min(86vw,420px);height:auto;image-rendering:pixelated;border:6px solid var(--navy);border-radius:14px;background:#fff}
+  .bar{height:10px;background:#e3e7ef;border-radius:99px;overflow:hidden;width:min(86vw,420px);margin:10px auto 4px}
+  .bar i{display:block;height:100%;background:var(--gold);width:100%;transition:width .25s linear}
+  .code{font-family:Consolas,monospace;font-weight:800;letter-spacing:2px;color:var(--navy)}
+  .big{font-size:20px}
+  .full #qrScreen{position:fixed;inset:0;background:#fff;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px}
+  .full #qrCv{width:min(94vw,82vh)}
+  .full .hideFull{display:none!important}
+  /* learners */
+  .lr{border:2px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;margin-bottom:8px}
+  .lr .h{display:flex;gap:10px;align-items:center;cursor:pointer}
+  .lr .h .nm{flex:1;min-width:0}
+  .lr .h b{color:var(--navy)}
+  .lr .h small{display:block;color:var(--muted);font-size:12px}
+  .chip{display:inline-block;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:800;white-space:nowrap}
+  .st-active{background:#e6f6ec;color:#1d6b3d}
+  .st-expired{background:#fff3c4;color:#7a5a00}
+  .st-inactive{background:#e8eefb;color:#1f4f9f}
+  .st-revoked{background:#fde8eb;color:#8a0b1f}
+  .acts{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
+  .acts .row{margin-bottom:8px}
+  .acts .row input{max-width:120px}
+  .counts{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+  footer{text-align:center;color:var(--muted);font-size:12px;padding:16px}
+  /* Phase 4: Progress Chart */
+  body.wide main{max-width:1240px}
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:2px solid var(--line);border-radius:12px;background:#fff}
+  table.mx{border-collapse:separate;border-spacing:0;font-size:12px;min-width:100%}
+  table.mx th{background:var(--navy);color:#fff;padding:5px 4px;font-size:11px;white-space:nowrap;position:sticky;top:0}
+  table.mx th.cat{background:#123f85}
+  table.mx td{border-bottom:1px solid var(--line);border-right:1px solid #f0ece2;padding:3px;text-align:center;vertical-align:middle}
+  table.mx td.nm,table.mx th.nm{position:sticky;left:0;background:#fff;text-align:left;min-width:150px;max-width:190px;z-index:1;border-right:2px solid var(--line)}
+  table.mx th.nm{background:var(--navy);z-index:2}
+  table.mx tr.sel td{background:#fffbe6}table.mx tr.sel td.nm{background:#fff3c4}
+  table.mx td.nm b{color:var(--navy);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  table.mx td.nm small{color:var(--muted);font-size:11px}
+  .cell{display:inline-block;min-width:28px;border-radius:6px;padding:3px 2px;font-weight:800;font-size:11.5px;line-height:1.2;cursor:pointer;border:0;font-family:inherit}
+  .cell small{display:block;font-weight:600;font-size:9.5px}
+  .cell.pick{outline:3px solid var(--gold);outline-offset:1px}
+  .leg{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:8px 0}
+  .leg span{display:inline-flex;align-items:center;gap:4px}.leg b{display:inline-block;width:12px;height:12px;border-radius:3px}
+  .markbox{border:2px solid var(--gold);background:#fffbe6;border-radius:12px;padding:12px;margin:10px 0}
+  .markbox .row>div{min-width:150px}
+  .rbtn{display:flex;gap:6px;flex-wrap:wrap}
+  .rbtn label{border:2px solid var(--line);border-radius:10px;padding:8px 10px;font-weight:800;cursor:pointer;background:#fff;margin:0;font-size:13px}
+  .rbtn input{position:absolute;opacity:0;pointer-events:none}
+  .rbtn label.on.c{background:#d9f2e2;border-color:#1d6b3d;color:#1d6b3d}.rbtn label.on.n{background:#fde8ea;border-color:#8a0f22;color:#8a0f22}.rbtn label.on.x{background:#eef1f6;border-color:#5b6578;color:#5b6578}
+</style>
+</head>
+<body>
+<header class="top hideFull">
+  <div class="ic">🔐</div>
+  <div><h1>Trainer Page · Access Lock</h1><p>Virtual TVET Campus — EIM NC III</p></div>
+  <div class="sp"></div>
+  <button class="btn alt sm hidden" id="outBtn">Log out</button>
+</header>
+
+<main>
+  <!-- LOGIN -->
+  <section class="card" id="loginCard">
+    <h2>Trainer log in</h2>
+    <p class="muted">Use your Trainer ID and the PIN typed in the <b>Trainers</b> tab of your Google Sheet.</p>
+    <div class="row">
+      <div><label for="tId">Trainer ID</label><input id="tId" value="TR-001" autocapitalize="characters"></div>
+      <div><label for="tPin">PIN</label><input id="tPin" type="password" inputmode="numeric"></div>
+      <div style="flex:0"><button class="btn gold" id="tGo">Log in</button></div>
+    </div>
+    <div id="lMsg" class="err hidden"></div>
+  </section>
+
+  <!-- APP -->
+  <section id="app" class="hidden">
+    <div class="tabs hideFull">
+      <button class="tab on" data-t="qr">📷 Activate (QR)</button>
+      <button class="tab" data-t="nfc">📶 NFC tag</button>
+      <button class="tab" data-t="lrn">👥 Learners</button>
+      <button class="tab" data-t="prg">📈 Progress Chart</button>
+    </div>
+
+    <!-- QR -->
+    <div class="card" id="t-qr">
+      <div id="qrScreen" class="qrwrap">
+        <h2 class="hideFull" style="text-align:left">Let learners scan this code</h2>
+        <p class="muted hideFull" style="text-align:left">Learners open their phone camera and scan. Then they log in with their Trainee ID and PIN, and the campus opens for <b id="qDays">30</b> days. The code changes every <b id="qSec">30</b> seconds, so a photo of it soon stops working.</p>
+        <canvas id="qrCv" width="420" height="420"></canvas>
+        <div class="bar"><i id="qBar"></i></div>
+        <div class="muted">Code <span class="code" id="qCode">—</span> · changes in <b id="qLeft">—</b>s</div>
+        <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+          <button class="btn" id="fullBtn">⛶ Full screen</button>
+          <button class="btn alt hideFull" id="copyQ">Copy link</button>
+        </div>
+        <div id="qWarn" class="err hidden" style="text-align:left"></div>
+      </div>
+    </div>
+
+    <!-- NFC -->
+    <div class="card hidden" id="t-nfc">
+      <h2>NFC tag (sticker or card)</h2>
+      <p class="muted">Keep an NFC sticker or card with you. A learner taps it with their phone, logs in, and the campus opens. This works on Android phones and on iPhone XS or newer. Keep the tag with you: anyone who taps it can activate.</p>
+      <label>Link to write on the tag</label>
+      <input id="nUrl" readonly>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="nWrite">📶 Write to NFC tag</button>
+        <button class="btn alt" id="nCopy">Copy link</button>
+        <button class="btn red" id="nRotate">Change tag code</button>
+      </div>
+      <div id="nMsg" class="hidden"></div>
+      <h3>No "Write" button support?</h3>
+      <p class="muted">Writing from this page works in Chrome on Android. On other phones, install the free app <b>NFC Tools</b>, choose <i>Write → Add a record → URL</i>, paste the link above, and write it to the tag.</p>
+      <p class="muted"><b>Change tag code</b> makes all old tags stop working (use it if a tag is lost). Then write the new link to your tag again.</p>
+    </div>
+
+    <!-- LEARNERS -->
+    <div class="card hidden" id="t-lrn">
+      <h2>Learners</h2>
+      <div class="row">
+        <div><input id="lSearch" placeholder="Search name or Trainee ID…"></div>
+        <div style="flex:0;min-width:170px"><select id="lFilter">
+          <option value="">All</option><option value="active">Active</option><option value="expired">Expired</option>
+          <option value="inactive">Not yet activated</option><option value="revoked">Revoked</option></select></div>
+        <div style="flex:0"><button class="btn alt" id="lReload">↻ Refresh</button></div>
+      </div>
+      <div class="counts" id="lCounts"></div>
+      <p class="muted" id="lInfo"></p>
+      <div id="lList"><p class="muted">Loading…</p></div>
+    </div>
+
+    <!-- PROGRESS CHART (Phase 4) -->
+    <div class="card hidden" id="t-prg">
+      <h2>Progress Chart · Achievement Chart</h2>
+      <p class="muted">The class at a glance. Tap a learner or a cell to open the learner's <b>Achievement Chart</b>, then tap an LO to mark it. <b>Ready for ICE</b> means the learner met every LO in the Self-Assessment and pre-test.</p>
+      <div class="row">
+        <div><input id="pSearch" placeholder="Search name or Trainee ID…"></div>
+        <div style="flex:0;min-width:170px"><select id="pFilter">
+          <option value="">All units</option><option value="Basic">Basic</option><option value="Common">Common</option><option value="Core">Core</option></select></div>
+        <div style="flex:0"><button class="btn alt" id="pReload">↻ Refresh</button></div>
+        <div style="flex:0"><button class="btn alt" id="pPrint">🖨 Print</button></div>
+      </div>
+      <div class="leg" id="pLeg"></div>
+      <div id="pMatrix"><p class="muted">Loading…</p></div>
+      <div id="pDetail"></div>
+    </div>
+  </section>
+</main>
+<footer class="hideFull">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu</footer>
+
+<script src="config.js"></script>
+<script src="qr.js"></script>
+<script src="assessment-bank.js"></script>
+<script src="trb.js"></script>
+<script>
+(function(){
+"use strict";
+const CFG=window.VTVET_CONFIG||{};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ss={get(k){try{return JSON.parse(sessionStorage.getItem(k))}catch(e){return null}},set(k,v){try{sessionStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{sessionStorage.removeItem(k)}catch(e){}}};
+let T=ss.get("vt_trainer"); // {tid, ttoken, name, qrSecret, nfcCode, qrSeconds, offset, settings}
+
+function campusUrl(){
+  let u=(CFG.campusUrl||"").trim();
+  if(!u&&/^https?:/.test(location.protocol))u=location.href.replace(/[#?].*$/,"").replace(/[^/]*$/,"");
+  if(u&&!u.endsWith("/")&&!/\.html?$/.test(u))u+="/";
+  return u;
+}
+async function api(action,p){
+  if(!CFG.apiUrl)return{ok:false,error:"The Google Sheets link is missing in config.js. The Trainer page only works online."};
+  try{const r=await fetch(CFG.apiUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({action},p))});return await r.json();}
+  catch(e){return{ok:false,error:"Cannot reach the records server. Check your internet connection."};}
+}
+async function tapi(action,p){
+  const r=await api(action,Object.assign({tid:T.tid,ttoken:T.ttoken},p||{}));
+  if(!r.ok&&r.relogin){logout();show($('lMsg'),r.error,"err");}
+  return r;
+}
+function show(el,text,kind){el.className=kind||"err";el.textContent=text;el.classList.toggle("hidden",!text);}
+
+/* ---------- login ---------- */
+async function login(){
+  const tid=$('tId').value.trim().toUpperCase(),pin=$('tPin').value.trim();
+  if(!tid||!pin){show($('lMsg'),"Enter your Trainer ID and PIN.");return;}
+  const b=$('tGo');b.disabled=true;b.textContent="Checking…";
+  const r=await api("trainerLogin",{tid,pin});
+  b.disabled=false;b.textContent="Log in";
+  if(!r.ok){show($('lMsg'),r.error||"Login failed.");return;}
+  T={tid:r.trainer.id,name:r.trainer.name,ttoken:r.ttoken,qrSecret:r.qrSecret,nfcCode:r.nfcCode,qrSeconds:r.qrSeconds,offset:(r.serverTime||Date.now())-Date.now(),settings:r.settings||{}};
+  ss.set("vt_trainer",T);$('tPin').value="";
+  start();
+}
+function logout(){T=null;ss.del("vt_trainer");stopQR();$('app').classList.add('hidden');$('loginCard').classList.remove('hidden');$('outBtn').classList.add('hidden');}
+$('tGo').onclick=login;
+$('tPin').onkeydown=e=>{if(e.key==="Enter")login();};
+$('outBtn').onclick=logout;
+
+function start(){
+  $('loginCard').classList.add('hidden');$('app').classList.remove('hidden');$('outBtn').classList.remove('hidden');
+  $('outBtn').textContent="Log out ("+(T.name||T.tid)+")";
+  $('qDays').textContent=(T.settings&&T.settings.lockDays)||30;$('qSec').textContent=T.qrSeconds;
+  setTab("qr");
+}
+document.querySelector('.tabs').onclick=e=>{const b=e.target.closest('.tab');if(b)setTab(b.dataset.t);};
+function setTab(t){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
+  ["qr","nfc","lrn","prg"].forEach(k=>$('t-'+k).classList.toggle('hidden',k!==t));
+  document.body.classList.toggle('wide',t==="prg");
+  if(t==="prg")loadProgress();
+  if(t==="qr")startQR();else stopQR();
+  if(t==="nfc")drawNfc();
+  if(t==="lrn")loadLearners();
+}
+
+/* ---------- rotating QR (same formula as the Apps Script: HMAC-SHA256 of the time window) ---------- */
+const enc=new TextEncoder();let hkey=null,qTimer=null,lastStep=-1,curUrl="",wake=null;
+async function qrCodeFor(step){
+  if(!hkey)hkey=await crypto.subtle.importKey("raw",enc.encode(T.qrSecret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+  const s=new Uint8Array(await crypto.subtle.sign("HMAC",hkey,enc.encode(String(step))));
+  return [...s].map(b=>b.toString(16).padStart(2,"0")).join("").slice(0,10).toUpperCase();
+}
+async function tick(){
+  const now=Date.now()+(T.offset||0),sec=T.qrSeconds||30;
+  const step=Math.floor(now/1000/sec),left=sec-Math.floor(now/1000)%sec;
+  $('qLeft').textContent=left;$('qBar').style.width=(left/sec*100)+"%";
+  if(step!==lastStep){
+    lastStep=step;
+    const code=await qrCodeFor(step),base=campusUrl();
+    if(!base){show($('qWarn'),"Set campusUrl in config.js (your GitHub Pages campus link) so phones can open the QR code.");return;}
+    if(!/^https:/.test(base))show($('qWarn'),"Phones can only open https:// links. Open this Trainer page from your GitHub Pages site, or set campusUrl in config.js.");
+    curUrl=base+"?act="+code+"&tr="+encodeURIComponent(T.tid);
+    window.VTQR.draw($('qrCv'),curUrl,{size:840});
+    $('qCode').textContent=code;
+  }
+}
+async function startQR(){
+  stopQR();lastStep=-1;tick();qTimer=setInterval(tick,250);
+  try{if(navigator.wakeLock)wake=await navigator.wakeLock.request("screen");}catch(e){}
+}
+function stopQR(){if(qTimer)clearInterval(qTimer);qTimer=null;try{if(wake)wake.release();}catch(e){}wake=null;}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&T&&!$('t-qr').classList.contains('hidden'))startQR();});
+$('fullBtn').onclick=()=>{
+  const on=!document.body.classList.contains('full');
+  document.body.classList.toggle('full',on);$('fullBtn').textContent=on?"✕ Exit full screen":"⛶ Full screen";
+  try{if(on&&document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(()=>{});else if(!on&&document.fullscreenElement)document.exitFullscreen();}catch(e){}
+};
+document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement&&document.body.classList.contains('full')){document.body.classList.remove('full');$('fullBtn').textContent="⛶ Full screen";}});
+async function copy(text,el){try{await navigator.clipboard.writeText(text);}catch(e){const t=document.createElement("textarea");t.value=text;document.body.appendChild(t);t.select();try{document.execCommand("copy")}catch(x){}t.remove();}
+  if(el){const o=el.textContent;el.textContent="✔ Copied";setTimeout(()=>el.textContent=o,1500);}}
+$('copyQ').onclick=()=>copy(curUrl,$('copyQ'));
+
+/* ---------- NFC ---------- */
+function nfcUrl(){return campusUrl()+"?nfc="+encodeURIComponent(T.nfcCode)+"&tr="+encodeURIComponent(T.tid);}
+function drawNfc(){$('nUrl').value=nfcUrl();$('nWrite').disabled=false;
+  if(!("NDEFReader" in window)){$('nWrite').title="Writing NFC from a web page works in Chrome on Android only.";}}
+$('nCopy').onclick=()=>copy(nfcUrl(),$('nCopy'));
+$('nWrite').onclick=async()=>{
+  if(!("NDEFReader" in window)){show($('nMsg'),"This browser cannot write NFC tags. Use Chrome on an Android phone, or the NFC Tools app (see below).","err");return;}
+  try{show($('nMsg'),"Hold the NFC tag on the back of your phone now…","ok");
+    const w=new NDEFReader();await w.write({records:[{recordType:"url",data:nfcUrl()}]});
+    show($('nMsg'),"✔ Tag written. Test it: tap the tag with a learner's phone.","ok");}
+  catch(e){show($('nMsg'),"Could not write the tag: "+(e.message||e),"err");}
+};
+let rotArm=0;
+$('nRotate').onclick=async()=>{
+  if(Date.now()-rotArm>5000){rotArm=Date.now();$('nRotate').textContent="Tap again to confirm";setTimeout(()=>{$('nRotate').textContent="Change tag code";},5000);return;}
+  rotArm=0;$('nRotate').disabled=true;
+  const r=await tapi("trainerNfc",{op:"rotate"});$('nRotate').disabled=false;$('nRotate').textContent="Change tag code";
+  if(!r.ok){show($('nMsg'),r.error,"err");return;}
+  T.nfcCode=r.nfcCode;ss.set("vt_trainer",T);drawNfc();
+  show($('nMsg'),"✔ New tag code made. Old tags no longer work. Write the new link to your tag.","ok");
+};
+
+/* ---------- learners: extend, revoke, restore, reset device, lock days, reset PIN ---------- */
+let L=[],openId=null,S={};
+const STL={active:"Active",expired:"Expired",inactive:"Not activated",revoked:"Revoked"};
+const fmtD=iso=>{if(!iso)return"—";const d=new Date(iso);return d.toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"})+" "+d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});};
+async function loadLearners(){
+  $('lList').innerHTML=`<p class="muted">Loading…</p>`;
+  const r=await tapi("trainerLearners");
+  if(!r.ok){$('lList').innerHTML=`<div class="err">${esc(r.error)}</div>`;return;}
+  L=r.learners||[];S=r.settings||{};
+  $('lInfo').textContent=`Default lock: ${S.lockDays} days · Device lock: ${S.deviceLock?"ON":"OFF"} (change these in the Settings tab of the Sheet).`;
+  drawList();
+}
+function drawList(){
+  const q=$('lSearch').value.trim().toLowerCase(),f=$('lFilter').value;
+  const c={active:0,expired:0,inactive:0,revoked:0};L.forEach(x=>c[x.status]=(c[x.status]||0)+1);
+  $('lCounts').innerHTML=Object.keys(c).map(k=>`<span class="chip st-${k}">${STL[k]}: ${c[k]}</span>`).join("");
+  const list=L.filter(x=>(!f||x.status===f)&&(!q||x.name.toLowerCase().includes(q)||String(x.id).toLowerCase().includes(q)));
+  $('lList').innerHTML=list.length?list.map(card).join(""):`<p class="muted">No learners found.</p>`;
+}
+function card(x){
+  const sub=x.status==="active"?`Open until ${fmtD(x.expiresOn)} · ${x.daysLeft} day(s) left`:x.status==="expired"?`Locked since ${fmtD(x.expiresOn)}`:x.status==="revoked"?`Stopped by trainer`:`Registered ${fmtD(x.registered)} · waiting for QR/NFC scan`;
+  const open=openId===x.id;
+  return `<div class="lr" data-id="${esc(x.id)}">
+   <div class="h" data-act="toggle"><div class="nm"><b>${esc(x.name)}</b> <span class="code" style="font-size:12px;letter-spacing:0">${esc(x.id)}</span>
+     <small>${esc(sub)}${x.device?` · 📱 device ${esc(x.device)}`:""}${x.lockDays?` · ${x.lockDays}-day lock`:""}${x.paused?` · ⏸ PIN paused`:""}</small></div>
+     <span class="chip st-${x.status}">${STL[x.status]}</span></div>
+   ${open?`<div class="acts">
+     <div class="row"><div><label>Add days</label><input type="number" min="1" max="3650" id="dExt" value="${S.lockDays||30}"></div>
+       <div style="flex:0"><button class="btn sm" data-act="extend">➕ ${x.status==="active"?"Extend":"Open now"}</button></div>
+       ${x.status==="active"?`<div style="flex:0"><button class="btn alt sm" data-act="lockNow">🔒 Lock now</button></div>`:""}</div>
+     <div class="row"><div><label>Lock after (days) for this learner</label><input type="number" min="1" max="3650" id="dSet" value="${x.lockDays||""}" placeholder="${S.lockDays} (default)"></div>
+       <div style="flex:0"><button class="btn alt sm" data-act="setDays">Save</button></div></div>
+     <div class="row"><div><label>New PIN (4–6 digits)</label><input id="dPin" inputmode="numeric" maxlength="6"></div>
+       <div style="flex:0"><button class="btn alt sm" data-act="resetPin">Reset PIN</button></div></div>
+     <div class="row" style="align-items:center">
+       ${x.device?`<button class="btn alt sm" data-act="resetDevice">📱 Reset device</button>`:""}
+       ${x.status==="revoked"?`<button class="btn sm" data-act="restore">↩ Restore access</button>`:`<button class="btn red sm" data-act="revoke">⛔ Revoke</button>`}
+     </div>
+     <div id="aMsg" class="hidden"></div>
+   </div>`:""}</div>`;
+}
+$('lSearch').oninput=drawList;$('lFilter').onchange=drawList;$('lReload').onclick=loadLearners;
+let armed={};
+$('lList').onclick=async e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const box=e.target.closest('.lr'),id=box.dataset.id,act=b.dataset.act;
+  if(act==="toggle"){openId=openId===id?null:id;drawList();return;}
+  const p={target:id,op:act};
+  if(act==="extend")p.days=$('dExt').value;
+  if(act==="setDays")p.days=$('dSet').value.trim();
+  if(act==="resetPin"){p.pin=$('dPin').value.trim();if(!/^\d{4,6}$/.test(p.pin)){show($('aMsg'),"New PIN must be 4 to 6 digits.","err");return;}}
+  if(["revoke","resetDevice","lockNow"].includes(act)&&(!armed[act]||Date.now()-armed[act]>5000)){
+    armed[act]=Date.now();b.dataset.o=b.dataset.o||b.textContent;b.textContent="Tap again to confirm";
+    setTimeout(()=>{if(b.isConnected)b.textContent=b.dataset.o;},5000);return;}
+  armed={};b.disabled=true;
+  const r=await tapi("trainerAction",p);
+  if(!r.ok){b.disabled=false;show($('aMsg'),r.error,"err");return;}
+  const x=L.find(y=>y.id===id);Object.assign(x,r.learner);x.paused=false;
+  drawList();
+  const done={extend:"Access open until "+fmtD(r.learner.expiresOn),revoke:"Access stopped. The learner is logged out.",restore:"Access restored.",lockNow:"Locked. The learner must scan again.",resetDevice:"Device reset. The learner can now activate on a new phone.",setDays:"Saved. Used on the next activation.",resetPin:"PIN changed. Tell the learner the new PIN."}[act];
+  show($('aMsg'),"✔ "+done,"ok");
+};
+
+
+/* ---------- PHASE 4: Progress Chart (class) and Achievement Chart (per learner) ---------- */
+const PST={C:["Competent","#1d6b3d","#d9f2e2"],R:["Ready for ICE","#1f5fbf","#e3edfb"],P:["In training","#7a5a00","#fff3c4"],N:["Not yet competent","#8a0f22","#fde8ea"],"":["Not started","#8a93a3","#f4f5f8"]};
+const BANK=window.VTVET_BANK||{};
+let PG=null,pSel=null,pPick=null; // PG={units,learners,methods,today}; pSel=learner id; pPick={code,lo}
+const shortD=d=>{if(!d)return"";const x=new Date(d+"T12:00:00");return isNaN(x)?d:x.toLocaleDateString(undefined,{month:"short",day:"numeric"});};
+const longD=d=>{if(!d)return"";const x=new Date(d+"T12:00:00");return isNaN(x)?d:x.toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"});};
+const shortCode=c=>String(c).slice(-3);
+const loTitle=(code,i)=>{const b=BANK[code];return b&&b.los&&b.los[i]?b.los[i].title:"";};
+$('pLeg').innerHTML=["C","R","P","N",""].map(k=>`<span><b style="background:${PST[k][2]};border:1px solid ${PST[k][1]}"></b>${PST[k][0]}</span>`).join("")+`<span>✔ = Competent · R = met in RPL · ✖ = Not yet competent</span>`;
+function sym(x){return x.s==="C"?"✔":x.s==="N"?"✖":x.s==="R"?"R":x.s==="P"?"•":"";}
+function cellBtn(x,attrs,withDate,pick){
+  const m=PST[x.s||""],tip=`${m[0]}${x.d?" · "+longD(x.d):""}${x.m?" · "+x.m:""}${x.by?" · "+x.by:""}`;
+  return`<button class="cell${pick?" pick":""}" ${attrs} title="${esc(tip)}" style="background:${m[2]};color:${m[1]}">${sym(x)||"&nbsp;"}${withDate&&x.d&&(x.s==="C"||x.s==="N")?`<small>${esc(shortD(x.d))}</small>`:""}</button>`;
+}
+async function loadProgress(keep){
+  if(!keep)$('pMatrix').innerHTML=`<p class="muted">Loading…</p>`;
+  const r=await tapi("trainerProgress");
+  if(!r.ok){$('pMatrix').innerHTML=`<div class="err">${esc(r.error)}</div>`;return;}
+  PG=r;drawMatrix();drawDetail();
+}
+function pUnits(){const f=$('pFilter').value;return PG.units.filter(u=>!f||u.cat===f);}
+function pLearners(){const q=$('pSearch').value.trim().toLowerCase();
+  return PG.learners.filter(x=>!q||x.name.toLowerCase().includes(q)||String(x.id).toLowerCase().includes(q))
+    .sort((a,b)=>(a.lastName||a.name).localeCompare(b.lastName||b.name));}
+function matrixHtml(U,LS,forPrint){
+  const cats=["Basic","Common","Core"].filter(c=>U.some(u=>u.cat===c));
+  const head1=`<tr><th class="nm" rowspan="2">Learner</th>${cats.map(c=>`<th class="cat" colspan="${U.filter(u=>u.cat===c).length}">${c}</th>`).join("")}<th rowspan="2">Competent</th></tr>`;
+  const head2=`<tr>${U.map(u=>`<th title="${esc(u.code+" "+u.title)}">${esc(shortCode(u.code))}</th>`).join("")}</tr>`;
+  const rows=LS.map(x=>{const c=U.filter(u=>x.progress[u.code].s==="C").length;
+    return`<tr data-id="${esc(x.id)}" class="${!forPrint&&pSel===x.id?"sel":""}"><td class="nm"${forPrint?"":` data-open="${esc(x.id)}" style="cursor:pointer"`}><b>${esc(x.name)}</b><small>${esc(x.id)}</small></td>
+      ${U.map(u=>`<td>${forPrint?`<span class="cell" style="background:${PST[x.progress[u.code].s||""][2]};color:${PST[x.progress[u.code].s||""][1]}">${sym(x.progress[u.code])||"&nbsp;"}</span>`:cellBtn(x.progress[u.code],`data-open="${esc(x.id)}" data-code="${esc(u.code)}"`)}</td>`).join("")}
+      <td><b>${c}</b>/${U.length}</td></tr>`;}).join("");
+  return`<table class="mx"><thead>${head1}${head2}</thead><tbody>${rows||`<tr><td class="nm" colspan="${U.length+2}">No learners found.</td></tr>`}</tbody></table>`;
+}
+function drawMatrix(){
+  if(!PG)return;const U=pUnits(),LS=pLearners();
+  const tot={C:0,R:0};LS.forEach(x=>U.forEach(u=>{const s=x.progress[u.code].s;if(tot[s]!==undefined)tot[s]++;}));
+  $('pMatrix').innerHTML=`<div class="counts"><span class="chip st-inactive">${LS.length} learner(s)</span><span class="chip st-active">${tot.C} unit(s) competent</span><span class="chip" style="background:#e3edfb;color:#1f5fbf">${tot.R} ready for ICE</span></div>
+    <div class="scroll">${matrixHtml(U,LS)}</div><p class="muted">Unit codes show the last 3 digits. Hold or hover over a code for the full title.</p>`;
+}
+function achTable(x,forPrint){
+  const U=PG.units,maxLO=Math.max(...U.map(u=>u.los));
+  return`<table class="mx"><thead><tr><th class="nm">Unit of competency</th>${Array.from({length:maxLO},(_,i)=>`<th>LO${i+1}</th>`).join("")}<th>Unit</th></tr></thead><tbody>
+   ${["Basic","Common","Core"].map(c=>`<tr><td class="nm" colspan="${maxLO+2}" style="background:#eef3fb;font-weight:800;color:var(--navy)">${c} competencies</td></tr>`+U.filter(u=>u.cat===c).map(u=>{const p=x.progress[u.code];
+     return`<tr><td class="nm"><b style="white-space:normal">${esc(u.title)}</b><small>${esc(u.code)}</small></td>
+      ${Array.from({length:maxLO},(_,i)=>i<u.los?`<td>${forPrint?`<span class="cell" style="background:${PST[p.los[i].s||""][2]};color:${PST[p.los[i].s||""][1]}">${sym(p.los[i])||"&nbsp;"}${p.los[i].d&&/[CN]/.test(p.los[i].s)?`<small>${esc(shortD(p.los[i].d))}</small>`:""}</span>`:cellBtn(p.los[i],`data-code="${esc(u.code)}" data-lo="LO${i+1}"`,true,pPick&&pPick.code===u.code&&pPick.lo==="LO"+(i+1))}</td>`:`<td style="background:#f6f6f6"></td>`).join("")}
+      <td>${forPrint?`<span class="cell" style="background:${PST[p.s||""][2]};color:${PST[p.s||""][1]}">${sym(p)||"&nbsp;"}${p.d?`<small>${esc(shortD(p.d))}</small>`:""}</span>`:cellBtn(p,`data-code="${esc(u.code)}" data-lo="UNIT"`,true,pPick&&pPick.code===u.code&&pPick.lo==="UNIT")}</td></tr>`;}).join("")).join("")}
+   </tbody></table>`;
+}
+function drawDetail(msg){
+  const box=$('pDetail');
+  const x=PG&&pSel?PG.learners.find(y=>y.id===pSel):null;
+  if(!x){box.innerHTML="";return;}
+  const c=PG.units.filter(u=>x.progress[u.code].s==="C").length,r=PG.units.filter(u=>x.progress[u.code].s==="R").length;
+  box.innerHTML=`<h3 id="pDetHead">🏅 Achievement Chart · ${esc(x.name)} <span class="code" style="font-size:12px;letter-spacing:0">${esc(x.id)}</span></h3>
+   <p class="muted">${c} of ${PG.units.length} units competent · ${r} ready for ICE. Tap an LO cell (or the Unit cell) to mark it.${PG.units.some(u=>x.progress[u.code].toAck)?` · ✍ waiting for the trainee to confirm: ${PG.units.filter(u=>x.progress[u.code].toAck).map(u=>esc(u.code)).join(", ")}`:""}</p>
+   ${msg?`<div class="ok">${esc(msg)}</div>`:""}
+   ${pPick?markForm(x):""}
+   <div class="scroll">${achTable(x)}</div>
+   <div class="row" style="margin-top:10px"><div style="flex:0"><button class="btn gold sm" id="pTrb">📘 Print TRB</button></div><div style="flex:0"><button class="btn alt sm" id="pPrintOne">🖨 Print chart</button></div><div style="flex:0"><button class="btn alt sm" id="pClose">Close</button></div></div>`;
+  $('pPrintOne').onclick=()=>printChart("one");
+  $('pTrb').onclick=async()=>{ // open the window first (pop-up blockers), then fill it
+    const w=window.open("","_blank");if(!w){alert("Please allow pop-ups to print.");return;}
+    w.document.write("<p style='font-family:sans-serif'>Preparing the Trainee's Record Book…</p>");
+    const r=await tapi("trainerTRB",{target:x.id});
+    if(!r.ok){w.document.body.innerHTML="<p style='font-family:sans-serif;color:#8a0b1f'>"+esc(r.error||"Could not load.")+"</p>";return;}
+    VTTRB.openPrint(r,BANK,w);
+  };
+  $('pClose').onclick=()=>{pSel=null;pPick=null;drawMatrix();drawDetail();};
+  if(pPick)wireForm(x);
+}
+function markForm(x){
+  const u=PG.units.find(y=>y.code===pPick.code),p=x.progress[u.code];
+  const cur=pPick.lo==="UNIT"||pPick.lo==="ALL"?p:p.los[+pPick.lo.slice(2)-1];
+  const opts=Array.from({length:u.los},(_,i)=>`<option value="LO${i+1}"${pPick.lo==="LO"+(i+1)?" selected":""}>LO${i+1}${loTitle(u.code,i)?" · "+esc(loTitle(u.code,i)):""}</option>`).join("")+
+    `<option value="UNIT"${pPick.lo==="UNIT"?" selected":""}>Whole unit (ICE result)</option><option value="ALL"${pPick.lo==="ALL"?" selected":""}>All LOs + whole unit</option>`;
+  const res=cur.s==="N"?"NYC":"Competent";
+  return`<div class="markbox" id="pForm"><b>${esc(u.code)} · ${esc(u.title)}</b>
+   <div class="muted" style="margin:2px 0 8px">Now: ${PST[cur.s||""][0]}${cur.d?" · "+esc(longD(cur.d)):""}${cur.m?" · "+esc(cur.m):""}${cur.by?" · by "+esc(cur.by):""}${cur.unit?" (from the whole-unit result)":""}</div>
+   <div class="row"><div style="min-width:220px"><label>Mark</label><select id="mLo">${opts}</select></div></div>
+   <label style="margin-top:8px">Result</label>
+   <div class="rbtn" id="mRes">
+     <label class="c${res==="Competent"?" on":""}"><input type="radio" name="mRes" value="Competent"${res==="Competent"?" checked":""}>✔ Competent</label>
+     <label class="n${res==="NYC"?" on":""}"><input type="radio" name="mRes" value="NYC"${res==="NYC"?" checked":""}>✖ Not yet competent</label>
+     <label class="x"><input type="radio" name="mRes" value="clear">Clear mark</label></div>
+   <div class="row" style="margin-top:8px"><div><label>Date</label><input type="date" id="mDate" value="${esc(cur.d&&/[CN]/.test(cur.s)&&!cur.unit?cur.d:PG.today)}" max="${esc(PG.today)}"></div>
+     <div><label>Method</label><select id="mMethod">${PG.methods.map(m=>`<option${(cur.m||PG.methods[0])===m?" selected":""}>${esc(m)}</option>`).join("")}</select></div></div>
+   <div class="row" style="margin-top:8px"><div><label>Note (optional)</label><input id="mNote" maxlength="200" value="${esc(cur.note||"")}"></div></div>
+   <div class="row" style="margin-top:10px"><div style="flex:0"><button class="btn gold" id="mSave">💾 Save</button></div><div style="flex:0"><button class="btn alt" id="mCancel">Cancel</button></div></div>
+   <div id="mMsg" class="hidden"></div></div>`;
+}
+function wireForm(x){
+  $('mRes').onchange=()=>[...$('mRes').querySelectorAll('label')].forEach(l=>l.classList.toggle('on',l.querySelector('input').checked));
+  $('mLo').onchange=()=>{pPick.lo=$('mLo').value;drawDetail();};
+  $('mCancel').onclick=()=>{pPick=null;drawDetail();};
+  $('mSave').onclick=async()=>{
+    const result=(document.querySelector('input[name=mRes]:checked')||{}).value;
+    if(!result){show($('mMsg'),"Choose a result.","err");return;}
+    const b=$('mSave');b.disabled=true;b.textContent="Saving…";
+    const r=await tapi("trainerMark",{target:x.id,code:pPick.code,lo:$('mLo').value,result,date:$('mDate').value,method:$('mMethod').value,note:$('mNote').value.trim()});
+    b.disabled=false;b.textContent="💾 Save";
+    if(!r.ok){show($('mMsg'),r.error||"Could not save.","err");return;}
+    x.progress[r.code]=r.unit;
+    const what=$('mLo').value==="UNIT"?"Whole unit":$('mLo').value==="ALL"?"All LOs + unit":$('mLo').value;
+    const u=PG.units.find(y=>y.code===r.code);
+    pPick=null;drawMatrix();
+    drawDetail(`✔ Saved: ${u.code} ${what} → ${result==="clear"?"mark cleared":result==="NYC"?"Not yet competent":"Competent"}. Unit status: ${PST[r.unit.s||""][0]}.`);
+  };
+  setTimeout(()=>{const f=$('pForm');if(f&&f.scrollIntoView)f.scrollIntoView({behavior:"smooth",block:"nearest"});},50);
+}
+$('pMatrix').onclick=e=>{const t=e.target.closest('[data-open]');if(!t)return;
+  pSel=t.dataset.open;pPick=t.dataset.code?{code:t.dataset.code,lo:"UNIT"}:null;
+  drawMatrix();drawDetail();setTimeout(()=>{const h=$('pDetHead');if(h&&h.scrollIntoView)h.scrollIntoView({behavior:"smooth",block:"start"});},50);};
+$('pDetail').onclick=e=>{const t=e.target.closest('button[data-lo]');if(!t)return;pPick={code:t.dataset.code,lo:t.dataset.lo};drawDetail();};
+$('pSearch').oninput=drawMatrix;$('pFilter').onchange=drawMatrix;$('pReload').onclick=()=>loadProgress();
+$('pPrint').onclick=()=>printChart("class");
+function printChart(kind){
+  if(!PG)return;const x=kind==="one"?PG.learners.find(y=>y.id===pSel):null;
+  const w=window.open("","_blank");if(!w){alert("Please allow pop-ups to print.");return;}
+  const css=document.querySelector('style').textContent;
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${kind==="one"?"Achievement Chart · "+esc(x.id):"Progress Chart"}</title><style>${css}
+   body{background:#fff;margin:18px}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.scroll{border:0;overflow:visible}table.mx{font-size:10.5px}table.mx th{position:static}table.mx td.nm,table.mx th.nm{position:static;max-width:none}
+   .hd{border-bottom:4px solid var(--gold);padding-bottom:6px;margin-bottom:10px}.hd h1{margin:0;font-size:17px;color:var(--navy)}@page{size:landscape;margin:12mm}
+   .sig{display:flex;gap:40px;margin-top:36px}.sig div{flex:1;border-top:1px solid #333;text-align:center;font-size:12px;padding-top:4px}</style></head><body>
+   <div class="hd"><h1>Virtual TVET Campus · ${kind==="one"?"Achievement Chart":"Progress Chart"}</h1>
+   <div>${kind==="one"?`<b>${esc(x.name)}</b> · Trainee ID ${esc(x.id)} · `:""}Electrical Installation and Maintenance NC III · Trainer: ${esc(T.name||T.tid)}</div>
+   <div class="muted">As of ${esc(longD(PG.today))}</div></div>
+   ${kind==="one"?achTable(x,true):matrixHtml(pUnits(),pLearners(),true)+`<p class="muted">${pUnits().map(u=>`<b>${esc(shortCode(u.code))}</b> ${esc(u.code)} ${esc(u.title)}`).join(" · ")}</p>`}
+   <div class="leg">${$('pLeg').innerHTML}</div>
+   <div class="sig"><div>Trainer's signature</div>${kind==="one"?"<div>Trainee's signature</div>":""}<div>Date</div></div>
+   <p class="muted" style="margin-top:20px">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu</p>
+   <script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script></body></html>`);
+  w.document.close();
+}
+
+if(T&&T.ttoken)start();
+})();
+</script>
+</body>
+</html>
