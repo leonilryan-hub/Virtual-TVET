@@ -62,6 +62,29 @@
   .acts .row input{max-width:120px}
   .counts{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
   footer{text-align:center;color:var(--muted);font-size:12px;padding:16px}
+  /* Phase 4: Progress Chart */
+  body.wide main{max-width:1240px}
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:2px solid var(--line);border-radius:12px;background:#fff}
+  table.mx{border-collapse:separate;border-spacing:0;font-size:12px;min-width:100%}
+  table.mx th{background:var(--navy);color:#fff;padding:5px 4px;font-size:11px;white-space:nowrap;position:sticky;top:0}
+  table.mx th.cat{background:#123f85}
+  table.mx td{border-bottom:1px solid var(--line);border-right:1px solid #f0ece2;padding:3px;text-align:center;vertical-align:middle}
+  table.mx td.nm,table.mx th.nm{position:sticky;left:0;background:#fff;text-align:left;min-width:150px;max-width:190px;z-index:1;border-right:2px solid var(--line)}
+  table.mx th.nm{background:var(--navy);z-index:2}
+  table.mx tr.sel td{background:#fffbe6}table.mx tr.sel td.nm{background:#fff3c4}
+  table.mx td.nm b{color:var(--navy);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  table.mx td.nm small{color:var(--muted);font-size:11px}
+  .cell{display:inline-block;min-width:28px;border-radius:6px;padding:3px 2px;font-weight:800;font-size:11.5px;line-height:1.2;cursor:pointer;border:0;font-family:inherit}
+  .cell small{display:block;font-weight:600;font-size:9.5px}
+  .cell.pick{outline:3px solid var(--gold);outline-offset:1px}
+  .leg{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:8px 0}
+  .leg span{display:inline-flex;align-items:center;gap:4px}.leg b{display:inline-block;width:12px;height:12px;border-radius:3px}
+  .markbox{border:2px solid var(--gold);background:#fffbe6;border-radius:12px;padding:12px;margin:10px 0}
+  .markbox .row>div{min-width:150px}
+  .rbtn{display:flex;gap:6px;flex-wrap:wrap}
+  .rbtn label{border:2px solid var(--line);border-radius:10px;padding:8px 10px;font-weight:800;cursor:pointer;background:#fff;margin:0;font-size:13px}
+  .rbtn input{position:absolute;opacity:0;pointer-events:none}
+  .rbtn label.on.c{background:#d9f2e2;border-color:#1d6b3d;color:#1d6b3d}.rbtn label.on.n{background:#fde8ea;border-color:#8a0f22;color:#8a0f22}.rbtn label.on.x{background:#eef1f6;border-color:#5b6578;color:#5b6578}
 </style>
 </head>
 <body>
@@ -91,6 +114,7 @@
       <button class="tab on" data-t="qr">📷 Activate (QR)</button>
       <button class="tab" data-t="nfc">📶 NFC tag</button>
       <button class="tab" data-t="lrn">👥 Learners</button>
+      <button class="tab" data-t="prg">📈 Progress Chart</button>
     </div>
 
     <!-- QR -->
@@ -140,12 +164,29 @@
       <p class="muted" id="lInfo"></p>
       <div id="lList"><p class="muted">Loading…</p></div>
     </div>
+
+    <!-- PROGRESS CHART (Phase 4) -->
+    <div class="card hidden" id="t-prg">
+      <h2>Progress Chart · Achievement Chart</h2>
+      <p class="muted">The class at a glance. Tap a learner or a cell to open the learner's <b>Achievement Chart</b>, then tap an LO to mark it. <b>Ready for ICE</b> means the learner met every LO in the Self-Assessment and pre-test.</p>
+      <div class="row">
+        <div><input id="pSearch" placeholder="Search name or Trainee ID…"></div>
+        <div style="flex:0;min-width:170px"><select id="pFilter">
+          <option value="">All units</option><option value="Basic">Basic</option><option value="Common">Common</option><option value="Core">Core</option></select></div>
+        <div style="flex:0"><button class="btn alt" id="pReload">↻ Refresh</button></div>
+        <div style="flex:0"><button class="btn alt" id="pPrint">🖨 Print</button></div>
+      </div>
+      <div class="leg" id="pLeg"></div>
+      <div id="pMatrix"><p class="muted">Loading…</p></div>
+      <div id="pDetail"></div>
+    </div>
   </section>
 </main>
 <footer class="hideFull">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu</footer>
 
 <script src="config.js"></script>
 <script src="qr.js"></script>
+<script src="assessment-bank.js"></script>
 <script>
 (function(){
 "use strict";
@@ -199,7 +240,9 @@ function start(){
 document.querySelector('.tabs').onclick=e=>{const b=e.target.closest('.tab');if(b)setTab(b.dataset.t);};
 function setTab(t){
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
-  ["qr","nfc","lrn"].forEach(k=>$('t-'+k).classList.toggle('hidden',k!==t));
+  ["qr","nfc","lrn","prg"].forEach(k=>$('t-'+k).classList.toggle('hidden',k!==t));
+  document.body.classList.toggle('wide',t==="prg");
+  if(t==="prg")loadProgress();
   if(t==="qr")startQR();else stopQR();
   if(t==="nfc")drawNfc();
   if(t==="lrn")loadLearners();
@@ -326,6 +369,135 @@ $('lList').onclick=async e=>{
   const done={extend:"Access open until "+fmtD(r.learner.expiresOn),revoke:"Access stopped. The learner is logged out.",restore:"Access restored.",lockNow:"Locked. The learner must scan again.",resetDevice:"Device reset. The learner can now activate on a new phone.",setDays:"Saved. Used on the next activation.",resetPin:"PIN changed. Tell the learner the new PIN."}[act];
   show($('aMsg'),"✔ "+done,"ok");
 };
+
+
+/* ---------- PHASE 4: Progress Chart (class) and Achievement Chart (per learner) ---------- */
+const PST={C:["Competent","#1d6b3d","#d9f2e2"],R:["Ready for ICE","#1f5fbf","#e3edfb"],P:["In training","#7a5a00","#fff3c4"],N:["Not yet competent","#8a0f22","#fde8ea"],"":["Not started","#8a93a3","#f4f5f8"]};
+const BANK=window.VTVET_BANK||{};
+let PG=null,pSel=null,pPick=null; // PG={units,learners,methods,today}; pSel=learner id; pPick={code,lo}
+const shortD=d=>{if(!d)return"";const x=new Date(d+"T12:00:00");return isNaN(x)?d:x.toLocaleDateString(undefined,{month:"short",day:"numeric"});};
+const longD=d=>{if(!d)return"";const x=new Date(d+"T12:00:00");return isNaN(x)?d:x.toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"});};
+const shortCode=c=>String(c).slice(-3);
+const loTitle=(code,i)=>{const b=BANK[code];return b&&b.los&&b.los[i]?b.los[i].title:"";};
+$('pLeg').innerHTML=["C","R","P","N",""].map(k=>`<span><b style="background:${PST[k][2]};border:1px solid ${PST[k][1]}"></b>${PST[k][0]}</span>`).join("")+`<span>✔ = Competent · R = met in RPL · ✖ = Not yet competent</span>`;
+function sym(x){return x.s==="C"?"✔":x.s==="N"?"✖":x.s==="R"?"R":x.s==="P"?"•":"";}
+function cellBtn(x,attrs,withDate,pick){
+  const m=PST[x.s||""],tip=`${m[0]}${x.d?" · "+longD(x.d):""}${x.m?" · "+x.m:""}${x.by?" · "+x.by:""}`;
+  return`<button class="cell${pick?" pick":""}" ${attrs} title="${esc(tip)}" style="background:${m[2]};color:${m[1]}">${sym(x)||"&nbsp;"}${withDate&&x.d&&(x.s==="C"||x.s==="N")?`<small>${esc(shortD(x.d))}</small>`:""}</button>`;
+}
+async function loadProgress(keep){
+  if(!keep)$('pMatrix').innerHTML=`<p class="muted">Loading…</p>`;
+  const r=await tapi("trainerProgress");
+  if(!r.ok){$('pMatrix').innerHTML=`<div class="err">${esc(r.error)}</div>`;return;}
+  PG=r;drawMatrix();drawDetail();
+}
+function pUnits(){const f=$('pFilter').value;return PG.units.filter(u=>!f||u.cat===f);}
+function pLearners(){const q=$('pSearch').value.trim().toLowerCase();
+  return PG.learners.filter(x=>!q||x.name.toLowerCase().includes(q)||String(x.id).toLowerCase().includes(q))
+    .sort((a,b)=>(a.lastName||a.name).localeCompare(b.lastName||b.name));}
+function matrixHtml(U,LS,forPrint){
+  const cats=["Basic","Common","Core"].filter(c=>U.some(u=>u.cat===c));
+  const head1=`<tr><th class="nm" rowspan="2">Learner</th>${cats.map(c=>`<th class="cat" colspan="${U.filter(u=>u.cat===c).length}">${c}</th>`).join("")}<th rowspan="2">Competent</th></tr>`;
+  const head2=`<tr>${U.map(u=>`<th title="${esc(u.code+" "+u.title)}">${esc(shortCode(u.code))}</th>`).join("")}</tr>`;
+  const rows=LS.map(x=>{const c=U.filter(u=>x.progress[u.code].s==="C").length;
+    return`<tr data-id="${esc(x.id)}" class="${!forPrint&&pSel===x.id?"sel":""}"><td class="nm"${forPrint?"":` data-open="${esc(x.id)}" style="cursor:pointer"`}><b>${esc(x.name)}</b><small>${esc(x.id)}</small></td>
+      ${U.map(u=>`<td>${forPrint?`<span class="cell" style="background:${PST[x.progress[u.code].s||""][2]};color:${PST[x.progress[u.code].s||""][1]}">${sym(x.progress[u.code])||"&nbsp;"}</span>`:cellBtn(x.progress[u.code],`data-open="${esc(x.id)}" data-code="${esc(u.code)}"`)}</td>`).join("")}
+      <td><b>${c}</b>/${U.length}</td></tr>`;}).join("");
+  return`<table class="mx"><thead>${head1}${head2}</thead><tbody>${rows||`<tr><td class="nm" colspan="${U.length+2}">No learners found.</td></tr>`}</tbody></table>`;
+}
+function drawMatrix(){
+  if(!PG)return;const U=pUnits(),LS=pLearners();
+  const tot={C:0,R:0};LS.forEach(x=>U.forEach(u=>{const s=x.progress[u.code].s;if(tot[s]!==undefined)tot[s]++;}));
+  $('pMatrix').innerHTML=`<div class="counts"><span class="chip st-inactive">${LS.length} learner(s)</span><span class="chip st-active">${tot.C} unit(s) competent</span><span class="chip" style="background:#e3edfb;color:#1f5fbf">${tot.R} ready for ICE</span></div>
+    <div class="scroll">${matrixHtml(U,LS)}</div><p class="muted">Unit codes show the last 3 digits. Hold or hover over a code for the full title.</p>`;
+}
+function achTable(x,forPrint){
+  const U=PG.units,maxLO=Math.max(...U.map(u=>u.los));
+  return`<table class="mx"><thead><tr><th class="nm">Unit of competency</th>${Array.from({length:maxLO},(_,i)=>`<th>LO${i+1}</th>`).join("")}<th>Unit</th></tr></thead><tbody>
+   ${["Basic","Common","Core"].map(c=>`<tr><td class="nm" colspan="${maxLO+2}" style="background:#eef3fb;font-weight:800;color:var(--navy)">${c} competencies</td></tr>`+U.filter(u=>u.cat===c).map(u=>{const p=x.progress[u.code];
+     return`<tr><td class="nm"><b style="white-space:normal">${esc(u.title)}</b><small>${esc(u.code)}</small></td>
+      ${Array.from({length:maxLO},(_,i)=>i<u.los?`<td>${forPrint?`<span class="cell" style="background:${PST[p.los[i].s||""][2]};color:${PST[p.los[i].s||""][1]}">${sym(p.los[i])||"&nbsp;"}${p.los[i].d&&/[CN]/.test(p.los[i].s)?`<small>${esc(shortD(p.los[i].d))}</small>`:""}</span>`:cellBtn(p.los[i],`data-code="${esc(u.code)}" data-lo="LO${i+1}"`,true,pPick&&pPick.code===u.code&&pPick.lo==="LO"+(i+1))}</td>`:`<td style="background:#f6f6f6"></td>`).join("")}
+      <td>${forPrint?`<span class="cell" style="background:${PST[p.s||""][2]};color:${PST[p.s||""][1]}">${sym(p)||"&nbsp;"}${p.d?`<small>${esc(shortD(p.d))}</small>`:""}</span>`:cellBtn(p,`data-code="${esc(u.code)}" data-lo="UNIT"`,true,pPick&&pPick.code===u.code&&pPick.lo==="UNIT")}</td></tr>`;}).join("")).join("")}
+   </tbody></table>`;
+}
+function drawDetail(msg){
+  const box=$('pDetail');
+  const x=PG&&pSel?PG.learners.find(y=>y.id===pSel):null;
+  if(!x){box.innerHTML="";return;}
+  const c=PG.units.filter(u=>x.progress[u.code].s==="C").length,r=PG.units.filter(u=>x.progress[u.code].s==="R").length;
+  box.innerHTML=`<h3 id="pDetHead">🏅 Achievement Chart · ${esc(x.name)} <span class="code" style="font-size:12px;letter-spacing:0">${esc(x.id)}</span></h3>
+   <p class="muted">${c} of ${PG.units.length} units competent · ${r} ready for ICE. Tap an LO cell (or the Unit cell) to mark it.</p>
+   ${msg?`<div class="ok">${esc(msg)}</div>`:""}
+   ${pPick?markForm(x):""}
+   <div class="scroll">${achTable(x)}</div>
+   <div class="row" style="margin-top:10px"><div style="flex:0"><button class="btn alt sm" id="pPrintOne">🖨 Print this learner</button></div><div style="flex:0"><button class="btn alt sm" id="pClose">Close</button></div></div>`;
+  $('pPrintOne').onclick=()=>printChart("one");
+  $('pClose').onclick=()=>{pSel=null;pPick=null;drawMatrix();drawDetail();};
+  if(pPick)wireForm(x);
+}
+function markForm(x){
+  const u=PG.units.find(y=>y.code===pPick.code),p=x.progress[u.code];
+  const cur=pPick.lo==="UNIT"||pPick.lo==="ALL"?p:p.los[+pPick.lo.slice(2)-1];
+  const opts=Array.from({length:u.los},(_,i)=>`<option value="LO${i+1}"${pPick.lo==="LO"+(i+1)?" selected":""}>LO${i+1}${loTitle(u.code,i)?" · "+esc(loTitle(u.code,i)):""}</option>`).join("")+
+    `<option value="UNIT"${pPick.lo==="UNIT"?" selected":""}>Whole unit (ICE result)</option><option value="ALL"${pPick.lo==="ALL"?" selected":""}>All LOs + whole unit</option>`;
+  const res=cur.s==="N"?"NYC":"Competent";
+  return`<div class="markbox" id="pForm"><b>${esc(u.code)} · ${esc(u.title)}</b>
+   <div class="muted" style="margin:2px 0 8px">Now: ${PST[cur.s||""][0]}${cur.d?" · "+esc(longD(cur.d)):""}${cur.m?" · "+esc(cur.m):""}${cur.by?" · by "+esc(cur.by):""}${cur.unit?" (from the whole-unit result)":""}</div>
+   <div class="row"><div style="min-width:220px"><label>Mark</label><select id="mLo">${opts}</select></div></div>
+   <label style="margin-top:8px">Result</label>
+   <div class="rbtn" id="mRes">
+     <label class="c${res==="Competent"?" on":""}"><input type="radio" name="mRes" value="Competent"${res==="Competent"?" checked":""}>✔ Competent</label>
+     <label class="n${res==="NYC"?" on":""}"><input type="radio" name="mRes" value="NYC"${res==="NYC"?" checked":""}>✖ Not yet competent</label>
+     <label class="x"><input type="radio" name="mRes" value="clear">Clear mark</label></div>
+   <div class="row" style="margin-top:8px"><div><label>Date</label><input type="date" id="mDate" value="${esc(cur.d&&/[CN]/.test(cur.s)&&!cur.unit?cur.d:PG.today)}" max="${esc(PG.today)}"></div>
+     <div><label>Method</label><select id="mMethod">${PG.methods.map(m=>`<option${(cur.m||PG.methods[0])===m?" selected":""}>${esc(m)}</option>`).join("")}</select></div></div>
+   <div class="row" style="margin-top:8px"><div><label>Note (optional)</label><input id="mNote" maxlength="200" value="${esc(cur.note||"")}"></div></div>
+   <div class="row" style="margin-top:10px"><div style="flex:0"><button class="btn gold" id="mSave">💾 Save</button></div><div style="flex:0"><button class="btn alt" id="mCancel">Cancel</button></div></div>
+   <div id="mMsg" class="hidden"></div></div>`;
+}
+function wireForm(x){
+  $('mRes').onchange=()=>[...$('mRes').querySelectorAll('label')].forEach(l=>l.classList.toggle('on',l.querySelector('input').checked));
+  $('mLo').onchange=()=>{pPick.lo=$('mLo').value;drawDetail();};
+  $('mCancel').onclick=()=>{pPick=null;drawDetail();};
+  $('mSave').onclick=async()=>{
+    const result=(document.querySelector('input[name=mRes]:checked')||{}).value;
+    if(!result){show($('mMsg'),"Choose a result.","err");return;}
+    const b=$('mSave');b.disabled=true;b.textContent="Saving…";
+    const r=await tapi("trainerMark",{target:x.id,code:pPick.code,lo:$('mLo').value,result,date:$('mDate').value,method:$('mMethod').value,note:$('mNote').value.trim()});
+    b.disabled=false;b.textContent="💾 Save";
+    if(!r.ok){show($('mMsg'),r.error||"Could not save.","err");return;}
+    x.progress[r.code]=r.unit;
+    const what=$('mLo').value==="UNIT"?"Whole unit":$('mLo').value==="ALL"?"All LOs + unit":$('mLo').value;
+    const u=PG.units.find(y=>y.code===r.code);
+    pPick=null;drawMatrix();
+    drawDetail(`✔ Saved: ${u.code} ${what} → ${result==="clear"?"mark cleared":result==="NYC"?"Not yet competent":"Competent"}. Unit status: ${PST[r.unit.s||""][0]}.`);
+  };
+  setTimeout(()=>{const f=$('pForm');if(f&&f.scrollIntoView)f.scrollIntoView({behavior:"smooth",block:"nearest"});},50);
+}
+$('pMatrix').onclick=e=>{const t=e.target.closest('[data-open]');if(!t)return;
+  pSel=t.dataset.open;pPick=t.dataset.code?{code:t.dataset.code,lo:"UNIT"}:null;
+  drawMatrix();drawDetail();setTimeout(()=>{const h=$('pDetHead');if(h&&h.scrollIntoView)h.scrollIntoView({behavior:"smooth",block:"start"});},50);};
+$('pDetail').onclick=e=>{const t=e.target.closest('button[data-lo]');if(!t)return;pPick={code:t.dataset.code,lo:t.dataset.lo};drawDetail();};
+$('pSearch').oninput=drawMatrix;$('pFilter').onchange=drawMatrix;$('pReload').onclick=()=>loadProgress();
+$('pPrint').onclick=()=>printChart("class");
+function printChart(kind){
+  if(!PG)return;const x=kind==="one"?PG.learners.find(y=>y.id===pSel):null;
+  const w=window.open("","_blank");if(!w){alert("Please allow pop-ups to print.");return;}
+  const css=document.querySelector('style').textContent;
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${kind==="one"?"Achievement Chart · "+esc(x.id):"Progress Chart"}</title><style>${css}
+   body{background:#fff;margin:18px}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.scroll{border:0;overflow:visible}table.mx{font-size:10.5px}table.mx th{position:static}table.mx td.nm,table.mx th.nm{position:static;max-width:none}
+   .hd{border-bottom:4px solid var(--gold);padding-bottom:6px;margin-bottom:10px}.hd h1{margin:0;font-size:17px;color:var(--navy)}@page{size:landscape;margin:12mm}
+   .sig{display:flex;gap:40px;margin-top:36px}.sig div{flex:1;border-top:1px solid #333;text-align:center;font-size:12px;padding-top:4px}</style></head><body>
+   <div class="hd"><h1>Virtual TVET Campus · ${kind==="one"?"Achievement Chart":"Progress Chart"}</h1>
+   <div>${kind==="one"?`<b>${esc(x.name)}</b> · Trainee ID ${esc(x.id)} · `:""}Electrical Installation and Maintenance NC III · Trainer: ${esc(T.name||T.tid)}</div>
+   <div class="muted">As of ${esc(longD(PG.today))}</div></div>
+   ${kind==="one"?achTable(x,true):matrixHtml(pUnits(),pLearners(),true)+`<p class="muted">${pUnits().map(u=>`<b>${esc(shortCode(u.code))}</b> ${esc(u.code)} ${esc(u.title)}`).join(" · ")}</p>`}
+   <div class="leg">${$('pLeg').innerHTML}</div>
+   <div class="sig"><div>Trainer's signature</div>${kind==="one"?"<div>Trainee's signature</div>":""}<div>Date</div></div>
+   <p class="muted" style="margin-top:20px">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu</p>
+   <script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script></body></html>`);
+  w.document.close();
+}
 
 if(T&&T.ttoken)start();
 })();

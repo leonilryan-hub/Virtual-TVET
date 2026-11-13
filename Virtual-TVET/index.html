@@ -155,6 +155,19 @@
   table.res th{background:var(--navy);color:#fff;text-align:left;padding:8px;font-size:12px}
   table.res td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
   table.res td.g{color:#1d6b3d;font-weight:700}table.res td.r{color:#8a0f22;font-weight:700}
+
+  /* Phase 4: Progress & Achievement Charts */
+  .pbar{display:flex;height:16px;border-radius:99px;overflow:hidden;background:#e3e7ef;margin:8px 0 4px}
+  .pbar i{display:block;height:100%}
+  .pleg{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:6px 0}
+  .pleg span{display:inline-flex;align-items:center;gap:4px}.pleg b{display:inline-block;width:12px;height:12px;border-radius:3px}
+  table.ach{border-collapse:collapse;font-size:12px;background:#fff;min-width:100%}
+  table.ach th{background:var(--navy);color:#fff;padding:6px 5px;font-size:11.5px;white-space:nowrap}
+  table.ach td{border:1px solid var(--line);padding:5px;text-align:center;vertical-align:middle;min-width:44px}
+  table.ach td.u{text-align:left;min-width:170px}
+  table.ach tr.cat td{background:#eef3fb;color:var(--navy);font-weight:800;text-align:left}
+  .pc{display:inline-block;border-radius:6px;padding:2px 5px;font-weight:800;font-size:11px;line-height:1.25;white-space:nowrap}
+  .pc small{display:block;font-weight:600;font-size:10px}
 </style>
 </head>
 <body>
@@ -332,7 +345,7 @@ const AREAS=[
  {id:"cpl",name:"Computer Laboratory",sub:"IT skills & online research",x:1050,y:130,w:220,h:160,roof:"#1f5fbf",icon:"💻"},
  {id:"dla",name:"Distance Learning Area",sub:"Learn anywhere, offline packs",x:1320,y:130,w:210,h:160,roof:"#0e8a8a",icon:"🌐"},
  {id:"tra",name:"Trainer's Resource Area",sub:"Trainer's room & records",x:70,y:130,w:230,h:160,roof:"#0b2a5b",icon:"👨‍🏫"},
- {id:"qca",name:"Quality Control Area",sub:"Pilot-testing of materials",x:330,y:130,w:220,h:160,roof:"#6b7280",icon:"✅"},
+ {id:"qca",name:"Quality Control Area",sub:"Progress & Achievement Charts · pilot-testing",x:330,y:130,w:220,h:160,roof:"#6b7280",icon:"✅"},
  {id:"ssa",name:"Support Service Area",sub:"Registrar, orientation & help desk",x:70,y:760,w:300,h:170,roof:"#b5651d",icon:"🗂️"}
 ];
 AREAS.forEach(a=>{a.door={x:a.x+a.w/2-20,y:a.y+a.h-6,w:40,h:10};a.zone={x:a.x+a.w/2-45,y:a.y+a.h-6,w:90,h:60};});
@@ -1241,7 +1254,7 @@ function renderIAA(){
     const cats=["Basic","Common","Core"];
     setBody(`<p>For each unit of competency: <b>① Self-Assessment</b> (what can you already do?) → <b>② Pre-test</b> (from your CBLM Self-Checks) → <b>③ your training gaps</b>.</p>
      <div class="grid4"><div class="stat"><b>${cnt.ready}</b>Ready for ICE</div><div class="stat"><b>${cnt.partial}</b>Partial</div><div class="stat"><b>${cnt.full}</b>Training needed</div><div class="stat"><b>${cnt.none}</b>Not finished</div></div>
-     <div style="margin:10px 0"><button class="btn alt" id="goNeeds">📄 View my Training Needs summary</button></div>
+     <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn alt" id="goNeeds">📄 View my Training Needs summary</button><button class="btn alt" data-prog="pc">📈 My Progress Chart</button></div>
      <div class="tabs" id="iaaTabs">${cats.map((c,i)=>`<button class="tab${i===0?" on":""}" data-c="${c}">${c}</button>`).join("")}</div>
      <div class="mods" id="iaaList"></div>
      <p class="muted" style="font-size:12.5px;margin-top:10px">Be honest in your Self-Assessment. Your trainer will check your evidence and confirm your skills during the Institutional Competency Evaluation.</p>`);
@@ -1354,6 +1367,95 @@ function renderNeedsSummary(){
   document.getElementById('nsBack').onclick=renderIAA;
 }
 
+
+/* ================= PHASE 4: Progress Chart & Achievement Chart ================= */
+// C Competent (trainer) · R met in RPL, ready for ICE · P in training · N not yet competent (trainer) · "" not started
+const PSTAT={C:["Competent","#1d6b3d","#d9f2e2"],R:["Ready for ICE","#1f5fbf","#e3edfb"],P:["In training","#7a5a00","#fff3c4"],N:["Not yet competent","#8a0f22","#fde8ea"],"":["Not started","#5b6578","#f1f3f7"]};
+let prog=null;
+const shortD=d=>{if(!d)return"";const x=new Date(d+"T12:00:00");return isNaN(x)?d:x.toLocaleDateString(undefined,{month:"short",day:"numeric"});};
+const longD=d=>{if(!d)return"";const x=new Date(d+"T12:00:00");return isNaN(x)?d:x.toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"});};
+function pchip(st){const m=PSTAT[st||""];return`<span class="soon" style="background:${m[2]};color:${m[1]};border-color:transparent">${m[0]}</span>`;}
+function pcell(x){
+  if(!x||!x.s)return"";const m=PSTAT[x.s];
+  const tip=x.s==="C"||x.s==="N"?`${m[0]} · ${longD(x.d)}${x.m?" · "+x.m:""}`:x.s==="R"?"Met in your Self-Assessment and pre-test. Your trainer confirms it in the ICE.":"";
+  const txt=x.s==="C"?`✔<small>${esc(shortD(x.d))}</small>`:x.s==="N"?`✖<small>${esc(shortD(x.d))}</small>`:x.s==="R"?"RPL":"…";
+  return`<span class="pc" title="${esc(tip)}" style="background:${m[2]};color:${m[1]}">${txt}</span>`;
+}
+async function loadProgress(){
+  if(DEMO){ // demo mode: built from this device's records (trainer marks need the Google Sheet)
+    await loadRecords();
+    const list=units.filter(u=>BANK[u.code]),out={};
+    list.forEach(u=>{const s=records.sag[u.code],p=records.pretest[u.code],met=(needsOf(u.code).losMet||"").split(", ");
+      const los=BANK[u.code].los.map((x,i)=>({s:s&&p&&met.includes("LO"+(i+1))?"R":""}));
+      out[u.code]={s:los.every(x=>x.s==="R")?"R":(s||p)?"P":"",d:"",los};});
+    prog={units:list.map(u=>({code:u.code,title:u.title,cat:u.category,los:BANK[u.code].los.length})),progress:out,today:new Date().toISOString().slice(0,10)};
+    return prog;
+  }
+  const r=await api("getProgress",{id:session.id,token:session.token});
+  prog=r.ok?r:null;
+  return r;
+}
+function progressTables(P,U){
+  const cats=["Basic","Common","Core"],maxLO=Math.max(...U.map(u=>u.los));
+  const pcRows=cats.map(c=>{const L=U.filter(u=>u.cat===c);if(!L.length)return"";
+    return`<tr class="cat"><td colspan="3">${c} competencies</td></tr>`+L.map(u=>{const x=P[u.code];
+      return`<tr><td class="u"><span class="code">${esc(u.code)}</span><br>${esc(u.title)}</td><td>${pchip(x.s)}</td><td>${x.s==="C"||x.s==="N"?esc(longD(x.d)):x.s==="P"&&x.gaps?`<span class="muted" style="font-size:11px">Gaps: ${esc(x.gaps)}</span>`:""}</td></tr>`;}).join("");}).join("");
+  const acRows=cats.map(c=>{const L=U.filter(u=>u.cat===c);if(!L.length)return"";
+    return`<tr class="cat"><td colspan="${maxLO+2}">${c} competencies</td></tr>`+L.map(u=>{const x=P[u.code];
+      return`<tr><td class="u"><span class="code">${esc(u.code)}</span><br>${esc(u.title)}</td>${Array.from({length:maxLO},(_,i)=>i<u.los?`<td>${pcell(x.los[i])}</td>`:`<td style="background:#f6f6f6"></td>`).join("")}<td>${x.s==="C"?pcell({s:"C",d:x.d,m:x.m}):x.s==="N"?pcell({s:"N",d:x.d,m:x.m}):pchip(x.s)}</td></tr>`;}).join("");}).join("");
+  return{pc:`<table class="ach"><thead><tr><th style="text-align:left">Unit of competency</th><th>Status</th><th>Date competent</th></tr></thead><tbody>${pcRows}</tbody></table>`,
+    ac:`<table class="ach"><thead><tr><th style="text-align:left">Unit of competency</th>${Array.from({length:maxLO},(_,i)=>`<th>LO${i+1}</th>`).join("")}<th>Unit</th></tr></thead><tbody>${acRows}</tbody></table>`};
+}
+function progressLegend(){return`<div class="pleg">${["C","R","P","N"].map(k=>`<span><b style="background:${PSTAT[k][1]}"></b>${PSTAT[k][0]}</span>`).join("")}<span>✔ date = confirmed by your trainer · RPL = met in your Self-Assessment and pre-test</span></div>`;}
+function renderProgress(view){
+  if(!session){setBody(`<div class="err" style="background:#fff3c4;color:#7a5a00;border-color:#f2d36b">🔒 Please register or log in first at the Support Service Area.</div><button class="btn gold" data-goto="ssa">Go to the Support Service Area ▶</button>`);return;}
+  setBody(`<p class="muted">Loading your progress…</p>`);
+  loadProgress().then(r=>{
+    if(!prog){setBody(`<div class="err">${esc((r&&r.error)||"Could not load your progress.")}</div><button class="btn alt" id="pgBack">Back</button>`);document.getElementById('pgBack').onclick=()=>openArea(curArea);return;}
+    view=view==="ac"?"ac":"pc";
+    const U=prog.units,P=prog.progress,n=U.length,cnt={C:0,R:0,P:0,N:0,"":0};
+    U.forEach(u=>cnt[P[u.code].s]++);
+    const BARC={C:"#2e9d5b",R:"#1f5fbf",P:"#f2b705",N:"#c8102e"};
+    const seg=k=>cnt[k]?`<i style="width:${cnt[k]/n*100}%;background:${BARC[k]}" title="${PSTAT[k][0]}: ${cnt[k]}"></i>`:"";
+    const T=progressTables(P,U),l=session.learner||{};
+    setBody(`<p><b>${esc(fullName(l))}</b> · <span class="code">${esc(session.id)}</span><br><span class="muted" style="font-size:13px">${esc(l.qualification||"Electrical Installation and Maintenance NC III")}</span></p>
+     <div class="pbar">${seg("C")}${seg("R")}${seg("P")}${seg("N")}</div>
+     <p style="margin:2px 0 8px"><b>${cnt.C} of ${n}</b> units competent (${Math.round(cnt.C/n*100)}%)</p>
+     <div class="grid4"><div class="stat"><b>${cnt.C}</b>Competent</div><div class="stat"><b>${cnt.R}</b>Ready for ICE</div><div class="stat"><b>${cnt.P+cnt.N}</b>In training</div><div class="stat"><b>${cnt[""]}</b>Not started</div></div>
+     <div class="tabs" id="pgTabs" style="margin-top:12px"><button class="tab${view==="pc"?" on":""}" data-v="pc">📈 Progress Chart</button><button class="tab${view==="ac"?" on":""}" data-v="ac">🏅 Achievement Chart</button></div>
+     <p class="muted" style="font-size:12.5px;margin:4px 0 8px">${view==="pc"?"Your status in each unit of competency.":"Each learning outcome (LO) you have achieved, with the date your trainer confirmed it."}</p>
+     <div style="overflow-x:auto">${T[view]}</div>${progressLegend()}
+     ${cnt.R?`<p style="font-size:13.5px">🎯 You are ready for the <b>Institutional Competency Evaluation</b> in ${cnt.R} unit${cnt.R===1?"":"s"}. Ask your trainer to schedule it.</p>`:""}
+     ${DEMO?`<p class="muted" style="font-size:12px">Demo mode: trainer confirmations appear once the campus is connected to your Google Sheet.</p>`:""}
+     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn" id="pgPrint">🖨 Print / Save as PDF</button><button class="btn alt" id="pgBack">Back</button></div>`);
+    document.getElementById('pgTabs').onclick=e=>{const b=e.target.closest('.tab');if(b)renderProgress(b.dataset.v);};
+    document.getElementById('pgBack').onclick=()=>openArea(curArea);
+    document.getElementById('pgPrint').onclick=()=>printProgress(T,cnt,n);
+  });
+}
+function printProgress(T,cnt,n){
+  const l=session.learner||{},w=window.open("","_blank");
+  if(!w){alertBox("Please allow pop-ups for this site to print your charts.");return;}
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Progress and Achievement Chart · ${esc(session.id)}</title><style>
+   body{font-family:"Segoe UI",Arial,sans-serif;color:#1b2333;margin:24px}h1{font-size:18px;margin:0;color:#0b2a5b}h2{font-size:15px;color:#0b2a5b;margin:22px 0 6px;page-break-after:avoid}
+   .hd{border-bottom:4px solid #f2b705;padding-bottom:8px;margin-bottom:10px}.muted{color:#5b6578;font-size:12px}
+   table{border-collapse:collapse;width:100%;font-size:11px;page-break-inside:auto}tr{page-break-inside:avoid}th{background:#0b2a5b;color:#fff;padding:5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+   td{border:1px solid #c9ccd3;padding:4px;text-align:center}td.u{text-align:left}tr.cat td{background:#eef3fb;font-weight:700;text-align:left;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+   .pc,.soon{display:inline-block;border-radius:4px;padding:1px 4px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pc small{display:block;font-weight:400;font-size:9px}.code{font-family:Consolas,monospace;font-weight:700}
+   .sig{display:flex;gap:40px;margin-top:40px}.sig div{flex:1;border-top:1px solid #333;text-align:center;font-size:12px;padding-top:4px}
+   .pleg{font-size:11px;color:#5b6578;margin-top:6px}.pleg b{display:inline-block;width:10px;height:10px;margin:0 3px 0 8px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+   </style></head><body>
+   <div class="hd"><h1>Virtual TVET Campus · Progress and Achievement Chart</h1>
+   <div><b>${esc(fullName(l))}</b> · Trainee ID ${esc(session.id)} · ${esc(l.qualification||"Electrical Installation and Maintenance NC III")}</div>
+   <div class="muted">As of ${esc(longD(prog.today))} · ${cnt.C} of ${n} units competent · ${cnt.R} ready for ICE</div></div>
+   <h2>Progress Chart</h2>${T.pc}<h2>Achievement Chart</h2>${T.ac}${progressLegend()}
+   <div class="sig"><div>Trainee's signature</div><div>Trainer's signature</div><div>Date</div></div>
+   <p class="muted" style="margin-top:24px">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu</p>
+   <script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script></body></html>`);
+  w.document.close();
+}
+document.getElementById('pBody').addEventListener('click',e=>{const b=e.target.closest('[data-prog]');if(b)renderProgress(b.dataset.prog);});
+
 const AREA_CONTENT={
  lrc(){
    const cats=["All","Basic","Common","Core"];
@@ -1407,10 +1509,12 @@ const AREA_CONTENT={
    return `<p>🔒 <b>Trainers only.</b> Show the activation QR code, manage the NFC tag, and extend, lock or revoke learners' access.</p>
    <div style="margin:10px 0 4px"><a class="btn gold big" href="trainer.html" target="_blank" rel="noopener">🔐 Open the Trainer Page</a></div>
    <h3>Coming next</h3>
-   <ul class="plan"><li>Trainee list & registration records</li><li>RPL results and training gaps</li><li>Progress & Achievement Charts</li><li>Training Activity Matrix</li><li>Upload / update CBLMs and simulators</li></ul>`;
+   <ul class="plan"><li>Trainee list & registration records</li><li>RPL results and training gaps</li><li>✅ Progress & Achievement Charts are now on the Trainer Page</li><li>Training Activity Matrix</li><li>Upload / update CBLMs and simulators</li></ul>`;
  },
  qca(){
-   return `<p>New and revised materials are pilot-tested here before trainees use them.</p>
+   return `<p>Your <b>Progress Chart</b> and <b>Achievement Chart</b> are posted here. They update by themselves from your Self-Assessment and pre-test, and when your trainer confirms your competencies.</p>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px"><button class="btn gold" data-prog="pc">📈 My Progress Chart</button><button class="btn alt" data-prog="ac">🏅 My Achievement Chart</button></div>
+   <h3>Pilot-testing of materials</h3><p class="muted" style="font-size:13px">New and revised materials are pilot-tested here before trainees use them.</p>
    <h3>Module status</h3><div class="mods">${units.map(u=>`<div class="mod cat-${u.category}"><div><span class="code">${esc(u.code)}</span><div class="ttl">${esc(u.title)}</div></div><div class="go"><span class="soon" style="background:#e6f6ec;color:#1d6b3d;border-color:#9fd8b2">Rev 00</span></div></div>`).join("")}</div>`;
  }
 };
