@@ -431,6 +431,7 @@ function drawDetail(msg){
    ${msg?`<div class="ok">${esc(msg)}</div>`:""}
    ${pPick?markForm(x):""}
    <div class="scroll">${achTable(x)}</div>
+   ${certSection(x)}
    <div class="row" style="margin-top:10px"><div style="flex:0"><button class="btn gold sm" id="pTrb">📘 Print TRB</button></div><div style="flex:0"><button class="btn alt sm" id="pPrintOne">🖨 Print chart</button></div><div style="flex:0"><button class="btn alt sm" id="pClose">Close</button></div></div>`;
   $('pPrintOne').onclick=()=>printChart("one");
   $('pTrb').onclick=async()=>{ // open the window first (pop-up blockers), then fill it
@@ -443,6 +444,31 @@ function drawDetail(msg){
   $('pClose').onclick=()=>{pSel=null;pPick=null;drawMatrix();drawDetail();};
   if(pPick)wireForm(x);
 }
+/* ---------- certificates (one per unit, issued automatically when the unit becomes Competent) ---------- */
+function certHref(c){return"certificate.html?no="+encodeURIComponent(c.no)+"&ref="+encodeURIComponent(c.ref);}
+function certSection(x){
+  const certs=x.certs||{};
+  const U=PG.units.filter(u=>x.progress[u.code].s==="C"||certs[u.code]);
+  if(!U.length)return`<h3>🎓 Certificates of Achievement</h3><p class="muted">A certificate is issued automatically when a unit is marked Competent.</p>`;
+  return`<h3>🎓 Certificates of Achievement</h3><div id="certList">${U.map(u=>{const c=certs[u.code],isC=x.progress[u.code].s==="C";
+    return`<div class="lr" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:200px"><b style="color:var(--navy)">${esc(u.code)}</b> ${esc(u.title)}
+      <small style="display:block;color:var(--muted)">${c?`No. ${esc(c.no)} · <span class="chip ${c.status==="Valid"?"st-active":"st-revoked"}">${esc(c.status)}</span>`:"No certificate yet"}</small></div>
+      ${c?`<a class="btn alt sm" href="${esc(certHref(c))}" target="_blank" rel="noopener">🎓 Open</a>`:""}
+      ${c&&c.status==="Valid"?`<button class="btn red sm" data-cert="revoke" data-code="${esc(u.code)}">⛔ Revoke</button>`:""}
+      ${c&&c.status!=="Valid"&&isC?`<button class="btn sm" data-cert="restore" data-code="${esc(u.code)}">↩ Restore</button>`:""}
+      ${!c&&isC?`<button class="btn gold sm" data-cert="issue" data-code="${esc(u.code)}">🎓 Issue now</button>`:""}</div>`;}).join("")}</div><div id="cMsg" class="hidden"></div>`;
+}
+let cArmed=0;
+$('pDetail').addEventListener('click',async e=>{
+  const b=e.target.closest('button[data-cert]');if(!b)return;
+  const x=PG.learners.find(y=>y.id===pSel);if(!x)return;
+  if(b.dataset.cert==="revoke"&&Date.now()-cArmed>5000){cArmed=Date.now();b.textContent="Tap again to revoke";return;}
+  cArmed=0;b.disabled=true;
+  const r=await tapi("trainerCert",{target:x.id,code:b.dataset.code,op:b.dataset.cert});
+  if(!r.ok){b.disabled=false;show($('cMsg'),r.error||"Could not save.","err");return;}
+  x.certs=r.certs||{};
+  drawDetail({issue:"🎓 Certificate "+r.cert.no+" issued.",revoke:"⛔ Certificate "+r.cert.no+" revoked. Its QR code now shows REVOKED.",restore:"↩ Certificate "+r.cert.no+" is valid again."}[b.dataset.cert]);
+});
 function markForm(x){
   const u=PG.units.find(y=>y.code===pPick.code),p=x.progress[u.code];
   const cur=pPick.lo==="UNIT"||pPick.lo==="ALL"?p:p.los[+pPick.lo.slice(2)-1];
@@ -475,10 +501,11 @@ function wireForm(x){
     b.disabled=false;b.textContent="💾 Save";
     if(!r.ok){show($('mMsg'),r.error||"Could not save.","err");return;}
     x.progress[r.code]=r.unit;
+    if(r.cert){x.certs=x.certs||{};x.certs[r.code]=r.cert;}
     const what=$('mLo').value==="UNIT"?"Whole unit":$('mLo').value==="ALL"?"All LOs + unit":$('mLo').value;
     const u=PG.units.find(y=>y.code===r.code);
     pPick=null;drawMatrix();
-    drawDetail(`✔ Saved: ${u.code} ${what} → ${result==="clear"?"mark cleared":result==="NYC"?"Not yet competent":"Competent"}. Unit status: ${PST[r.unit.s||""][0]}.`);
+    drawDetail(`✔ Saved: ${u.code} ${what} → ${result==="clear"?"mark cleared":result==="NYC"?"Not yet competent":"Competent"}. Unit status: ${PST[r.unit.s||""][0]}.`+(r.cert&&r.cert.issuedNow?` 🎓 Certificate ${r.cert.no} issued.`:"")+(r.cert&&r.cert.revokedNow?` ⛔ Certificate ${r.cert.no} revoked.`:""));
   };
   setTimeout(()=>{const f=$('pForm');if(f&&f.scrollIntoView)f.scrollIntoView({behavior:"smooth",block:"nearest"});},50);
 }
