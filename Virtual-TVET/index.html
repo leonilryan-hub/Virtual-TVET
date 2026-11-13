@@ -168,6 +168,20 @@
   table.ach tr.cat td{background:#eef3fb;color:var(--navy);font-weight:800;text-align:left}
   .pc{display:inline-block;border-radius:6px;padding:2px 5px;font-weight:800;font-size:11px;line-height:1.25;white-space:nowrap}
   .pc small{display:block;font-weight:600;font-size:10px}
+  /* Phase 4b: Trainee's Record Book */
+  .trbcov{background:var(--navy);color:#fff;border-radius:14px;padding:14px;border-bottom:5px solid var(--gold);margin-bottom:10px}
+  .trbcov h4{margin:0;font-size:18px;letter-spacing:.5px}.trbcov small{color:var(--gold)}
+  .trbu{border:2px solid var(--line);border-radius:12px;background:#fff;padding:10px;margin-bottom:10px}
+  .trbu .hd{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:6px}
+  .trbu .rpl{font-size:12px;color:var(--muted);margin:2px 0 6px}
+  .trl{display:flex;gap:8px;padding:7px 0;border-top:1px dashed var(--line);font-size:13px}
+  .trl .lo{font-weight:800;color:var(--navy);min-width:40px}.trl .tx{flex:1;min-width:0}
+  .trl .mt{font-size:12px;margin-top:2px;color:var(--muted)}.trl .mt b.ok{color:#1d6b3d}.trl .mt b.no{color:#8a0f22}.trl .mt b.rp{color:#1f5fbf}
+  .trl.ur{background:#f4f6fb;border-radius:8px;padding:7px 6px}
+  table.trb{border-collapse:collapse;font-size:11.5px;width:100%;min-width:560px}
+  table.trb th{background:var(--navy);color:#fff;padding:5px;font-size:10.5px}
+  table.trb td{border:1px solid var(--line);padding:4px 5px}table.trb td.c{text-align:center}
+  table.trb td.ok{color:#1d6b3d;font-weight:700}table.trb td.no{color:#8a0f22;font-weight:700}table.trb td.rpl{color:#1f5fbf}table.trb tr.ur td{background:#f4f6fb}
 </style>
 </head>
 <body>
@@ -241,6 +255,7 @@
 <script src="../LMS/lms-list.js"></script>
 <script src="config.js"></script>
 <script src="assessment-bank.js"></script>
+<script src="trb.js"></script>
 <script>
 (function(){
 "use strict";
@@ -1427,7 +1442,7 @@ function renderProgress(view){
      <div style="overflow-x:auto">${T[view]}</div>${progressLegend()}
      ${cnt.R?`<p style="font-size:13.5px">🎯 You are ready for the <b>Institutional Competency Evaluation</b> in ${cnt.R} unit${cnt.R===1?"":"s"}. Ask your trainer to schedule it.</p>`:""}
      ${DEMO?`<p class="muted" style="font-size:12px">Demo mode: trainer confirmations appear once the campus is connected to your Google Sheet.</p>`:""}
-     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn" id="pgPrint">🖨 Print / Save as PDF</button><button class="btn alt" id="pgBack">Back</button></div>`);
+     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn" id="pgPrint">🖨 Print / Save as PDF</button><button class="btn alt" data-trb="1">📘 Record Book</button><button class="btn alt" id="pgBack">Back</button></div>`);
     document.getElementById('pgTabs').onclick=e=>{const b=e.target.closest('.tab');if(b)renderProgress(b.dataset.v);};
     document.getElementById('pgBack').onclick=()=>openArea(curArea);
     document.getElementById('pgPrint').onclick=()=>printProgress(T,cnt,n);
@@ -1455,6 +1470,54 @@ function printProgress(T,cnt,n){
   w.document.close();
 }
 document.getElementById('pBody').addEventListener('click',e=>{const b=e.target.closest('[data-prog]');if(b)renderProgress(b.dataset.prog);});
+
+/* ================= PHASE 4b: Trainee's Record Book (TRB) ================= */
+let trb=null;
+function trbList(d,code){ // phone-friendly list of one unit's entries
+  const p=d.progress[code],TR=VTTRB;
+  const meta=x=>{
+    if(x.s==="C"||x.s==="N")return`<b class="${x.s==="C"?"ok":"no"}">${x.s==="C"?"✔ Competent":"✖ Not yet competent"}</b> · ${esc(TR.longD(x.d))}${x.m&&x.m!=="All LOs competent"?" · "+esc(x.m):""}${x.by?" · "+esc(TR.trainerName(d,x.by)):""}${x.ack?` · ✍ confirmed ${esc(TR.shortD(x.ack))}`:x.s==="C"?" · <i>waiting for your Confirm</i>":""}`;
+    if(x.s==="R")return`<b class="rp">Met in RPL</b> · for the Institutional Competency Evaluation`;
+    return"—";};
+  return p.los.map((x,i)=>`<div class="trl"><div class="lo">LO${i+1}</div><div class="tx"><div>${esc((BANK[code]&&BANK[code].los[i]&&BANK[code].los[i].title)||"")}</div><div class="mt">${meta(x)}</div></div></div>`).join("")+
+    `<div class="trl ur"><div class="lo">Unit</div><div class="tx"><div><b>Unit result</b></div><div class="mt">${p.s==="C"||p.s==="N"?meta(Object.assign({},p,{ack:p.ack||(p.m==="All LOs competent"&&p.los.every(x=>x.ack)?p.los.map(x=>x.ack).sort().pop():"")})):esc(TR.STATUS[p.s||""])}</div></div></div>`;
+}
+function renderTRB(cat,note){
+  if(!session){setBody(`<div class="err" style="background:#fff3c4;color:#7a5a00;border-color:#f2d36b">🔒 Please register or log in first at the Support Service Area.</div><button class="btn gold" data-goto="ssa">Go to the Support Service Area ▶</button>`);return;}
+  if(DEMO){setBody(`<p>Your <b>Trainee's Record Book</b> is kept in your trainer's Google Sheet, so it works only when the campus is online.</p><button class="btn alt" id="tbBack">Back</button>`);document.getElementById('tbBack').onclick=()=>openArea(curArea);return;}
+  const draw=()=>{
+    const d=trb,L=d.learner,c=VTTRB.counts(d),n=d.units.length,TR=VTTRB;
+    cat=cat||"Basic";
+    const toAck=d.units.filter(u=>d.progress[u.code].toAck);
+    const U=d.units.filter(u=>u.cat===cat);
+    setBody(`${note?`<div class="err" style="background:#e6f6ec;color:#1d6b3d;border-color:#9fd8b2">✔ ${esc(note)}</div>`:""}
+     <div class="trbcov"><small>${esc(d.institution)}</small><h4>📘 TRAINEE'S RECORD BOOK</h4>
+       <div style="margin-top:6px"><b>${esc(L.name)}</b> · <span class="code" style="color:#fff">${esc(L.id)}</span><br><span style="font-size:13px;opacity:.9">${esc(L.qualification)}</span></div>
+       <div style="margin-top:6px;font-size:13px"><b>${c.C} of ${n}</b> units competent · ${c.R} ready for ICE</div></div>
+     ${toAck.length?`<div class="err" style="background:#fff3c4;color:#7a5a00;border-color:#f2d36b">✍ Your trainer recorded new results in <b>${toAck.length}</b> unit${toAck.length===1?"":"s"}: ${toAck.map(u=>esc(u.code)).join(", ")}. Check them and tap <b>Confirm</b> (this is your initial in the record book).</div>`:""}
+     <div class="tabs" id="tbTabs">${["Basic","Common","Core"].map(k=>`<button class="tab${k===cat?" on":""}" data-c="${k}">${k}${d.units.some(u=>u.cat===k&&d.progress[u.code].toAck)?" ✍":""}</button>`).join("")}</div>
+     ${U.map(u=>{const p=d.progress[u.code],a=d.assess[u.code]||{};
+       return`<div class="trbu"><div class="hd"><div><span class="code">${esc(u.code)}</span> ${pchip(p.s)}<div class="ttl" style="font-weight:700;color:var(--navy)">${esc(u.title)}</div></div>
+         ${p.toAck?`<button class="btn gold" data-ack="${esc(u.code)}">✍ Confirm</button>`:""}</div>
+         <div class="rpl">RPL: Self-Assessment ${a.sag?esc(TR.shortD(a.sag))+" ("+esc(a.sagYes)+" Yes)":"not yet"} · Pre-test ${a.pre?esc(TR.shortD(a.pre))+" ("+esc(a.prePct)+"%)":"not yet"}</div>
+         ${trbList(d,u.code)}</div>`;}).join("")}
+     <p class="muted" style="font-size:12.5px">Only your trainer can record results. Your <b>Confirm</b> shows that you saw and agree with the entries. If an entry is wrong, tell your trainer.</p>
+     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn" id="tbPrint">🖨 Print my Record Book</button><button class="btn alt" id="tbBack">Back</button></div>`);
+    document.getElementById('tbTabs').onclick=e=>{const b=e.target.closest('.tab');if(b){cat=b.dataset.c;draw();}};
+    document.getElementById('tbBack').onclick=()=>openArea(curArea);
+    document.getElementById('tbPrint').onclick=()=>{if(!VTTRB.openPrint(trb,BANK))alertBox("Please allow pop-ups for this site to print your Record Book.");};
+    bodyEl().querySelectorAll('[data-ack]').forEach(b=>b.onclick=async()=>{
+      b.disabled=true;b.textContent="Saving…";
+      const r=await api("ackTRB",{id:session.id,token:session.token,code:b.dataset.ack});
+      if(!r.ok){b.disabled=false;b.textContent="✍ Confirm";alertBox(r.error||"Could not save.");return;}
+      trb.progress[r.code]=r.unit;note=`Confirmed ${r.confirmed} entr${r.confirmed===1?"y":"ies"} in ${r.code}.`;draw();note="";});
+  };
+  setBody(`<p class="muted">Opening your Record Book…</p>`);
+  api("getTRB",{id:session.id,token:session.token}).then(r=>{
+    if(!r.ok){if(r.locked&&!r.access)lockSession();setBody(`<div class="err">${esc(r.error||"Could not open your Record Book.")}</div><button class="btn alt" id="tbBack">Back</button>`);document.getElementById('tbBack').onclick=()=>openArea(curArea);return;}
+    trb=r;draw();});
+}
+document.getElementById('pBody').addEventListener('click',e=>{const b=e.target.closest('[data-trb]');if(b)renderTRB();});
 
 const AREA_CONTENT={
  lrc(){
@@ -1513,7 +1576,7 @@ const AREA_CONTENT={
  },
  qca(){
    return `<p>Your <b>Progress Chart</b> and <b>Achievement Chart</b> are posted here. They update by themselves from your Self-Assessment and pre-test, and when your trainer confirms your competencies.</p>
-   <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px"><button class="btn gold" data-prog="pc">📈 My Progress Chart</button><button class="btn alt" data-prog="ac">🏅 My Achievement Chart</button></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px"><button class="btn gold" data-prog="pc">📈 My Progress Chart</button><button class="btn alt" data-prog="ac">🏅 My Achievement Chart</button><button class="btn alt" data-trb="1">📘 My Record Book (TRB)</button></div>
    <h3>Pilot-testing of materials</h3><p class="muted" style="font-size:13px">New and revised materials are pilot-tested here before trainees use them.</p>
    <h3>Module status</h3><div class="mods">${units.map(u=>`<div class="mod cat-${u.category}"><div><span class="code">${esc(u.code)}</span><div class="ttl">${esc(u.title)}</div></div><div class="go"><span class="soon" style="background:#e6f6ec;color:#1d6b3d;border-color:#9fd8b2">Rev 00</span></div></div>`).join("")}</div>`;
  }

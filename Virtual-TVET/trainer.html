@@ -187,6 +187,7 @@
 <script src="config.js"></script>
 <script src="qr.js"></script>
 <script src="assessment-bank.js"></script>
+<script src="trb.js"></script>
 <script>
 (function(){
 "use strict";
@@ -426,12 +427,19 @@ function drawDetail(msg){
   if(!x){box.innerHTML="";return;}
   const c=PG.units.filter(u=>x.progress[u.code].s==="C").length,r=PG.units.filter(u=>x.progress[u.code].s==="R").length;
   box.innerHTML=`<h3 id="pDetHead">🏅 Achievement Chart · ${esc(x.name)} <span class="code" style="font-size:12px;letter-spacing:0">${esc(x.id)}</span></h3>
-   <p class="muted">${c} of ${PG.units.length} units competent · ${r} ready for ICE. Tap an LO cell (or the Unit cell) to mark it.</p>
+   <p class="muted">${c} of ${PG.units.length} units competent · ${r} ready for ICE. Tap an LO cell (or the Unit cell) to mark it.${PG.units.some(u=>x.progress[u.code].toAck)?` · ✍ waiting for the trainee to confirm: ${PG.units.filter(u=>x.progress[u.code].toAck).map(u=>esc(u.code)).join(", ")}`:""}</p>
    ${msg?`<div class="ok">${esc(msg)}</div>`:""}
    ${pPick?markForm(x):""}
    <div class="scroll">${achTable(x)}</div>
-   <div class="row" style="margin-top:10px"><div style="flex:0"><button class="btn alt sm" id="pPrintOne">🖨 Print this learner</button></div><div style="flex:0"><button class="btn alt sm" id="pClose">Close</button></div></div>`;
+   <div class="row" style="margin-top:10px"><div style="flex:0"><button class="btn gold sm" id="pTrb">📘 Print TRB</button></div><div style="flex:0"><button class="btn alt sm" id="pPrintOne">🖨 Print chart</button></div><div style="flex:0"><button class="btn alt sm" id="pClose">Close</button></div></div>`;
   $('pPrintOne').onclick=()=>printChart("one");
+  $('pTrb').onclick=async()=>{ // open the window first (pop-up blockers), then fill it
+    const w=window.open("","_blank");if(!w){alert("Please allow pop-ups to print.");return;}
+    w.document.write("<p style='font-family:sans-serif'>Preparing the Trainee's Record Book…</p>");
+    const r=await tapi("trainerTRB",{target:x.id});
+    if(!r.ok){w.document.body.innerHTML="<p style='font-family:sans-serif;color:#8a0b1f'>"+esc(r.error||"Could not load.")+"</p>";return;}
+    VTTRB.openPrint(r,BANK,w);
+  };
   $('pClose').onclick=()=>{pSel=null;pPick=null;drawMatrix();drawDetail();};
   if(pPick)wireForm(x);
 }
