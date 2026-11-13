@@ -1519,6 +1519,28 @@ function renderTRB(cat,note){
 }
 document.getElementById('pBody').addEventListener('click',e=>{const b=e.target.closest('[data-trb]');if(b)renderTRB();});
 
+/* ================= PHASE 4c: Certificates of Achievement ================= */
+function certUrl(c){return"certificate.html?no="+encodeURIComponent(c.no)+"&ref="+encodeURIComponent(c.ref);}
+function renderCerts(){
+  if(!session){setBody(`<div class="err" style="background:#fff3c4;color:#7a5a00;border-color:#f2d36b">🔒 Please register or log in first at the Support Service Area.</div><button class="btn gold" data-goto="ssa">Go to the Support Service Area ▶</button>`);return;}
+  if(DEMO){setBody(`<p>Certificates are issued from your trainer's Google Sheet, so they work only when the campus is online.</p><button class="btn alt" id="ceBack">Back</button>`);document.getElementById('ceBack').onclick=()=>openArea(curArea);return;}
+  setBody(`<p class="muted">Loading your certificates…</p>`);
+  api("myCerts",{id:session.id,token:session.token}).then(r=>{
+    const back=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn alt" id="ceBack">Back</button></div>`;
+    if(!r.ok){setBody(`<div class="err">${esc(r.error||"Could not load your certificates.")}</div>${back}`);}
+    else{
+      const L=(r.certs||[]).slice().sort((a,b)=>(b.given||"").localeCompare(a.given||""));
+      const col={Basic:"#22a84a",Common:"#1565c0",Core:"#c62828"};
+      setBody(`<p>🎓 You receive a <b>Certificate of Achievement</b> for each unit of competency, as soon as your trainer marks it <b>Competent</b>.</p>
+       ${L.length?`<p><b>${L.length}</b> certificate${L.length===1?"":"s"}</p>`+L.map(c=>`<div class="mod" style="border-left:6px solid ${col[c.cat]||"#1d2b58"}"><div style="flex:1;min-width:0"><span class="code">${esc(c.code)}</span> <span class="meta">· ${esc(c.cat)}</span><div class="ttl">${esc(c.title)}</div><div class="meta">No. ${esc(c.no)} · given ${esc(VTTRB.longD(c.given))}</div></div><div class="go"><a class="btn gold" href="${esc(certUrl(c))}" target="_blank" rel="noopener">🎓 Open</a></div></div>`).join("")
+         :`<div class="err" style="background:#eef3fb;color:#1f4f9f;border-color:#c9d6f0">No certificates yet. Finish your training gaps, then ask your trainer for your Institutional Competency Evaluation.</div>`}
+       <p class="muted" style="font-size:12.5px">Open a certificate to print it or save it as PDF. Anyone can scan its QR code to check that it is genuine.</p>${back}`);
+    }
+    document.getElementById('ceBack').onclick=()=>openArea(curArea);
+  });
+}
+document.getElementById('pBody').addEventListener('click',e=>{const b=e.target.closest('[data-certs]');if(b)renderCerts();});
+
 const AREA_CONTENT={
  lrc(){
    const cats=["All","Basic","Common","Core"];
@@ -1576,7 +1598,7 @@ const AREA_CONTENT={
  },
  qca(){
    return `<p>Your <b>Progress Chart</b> and <b>Achievement Chart</b> are posted here. They update by themselves from your Self-Assessment and pre-test, and when your trainer confirms your competencies.</p>
-   <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px"><button class="btn gold" data-prog="pc">📈 My Progress Chart</button><button class="btn alt" data-prog="ac">🏅 My Achievement Chart</button><button class="btn alt" data-trb="1">📘 My Record Book (TRB)</button></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px"><button class="btn gold" data-prog="pc">📈 My Progress Chart</button><button class="btn alt" data-prog="ac">🏅 My Achievement Chart</button><button class="btn alt" data-trb="1">📘 My Record Book (TRB)</button><button class="btn alt" data-certs="1">🎓 My Certificates</button></div>
    <h3>Pilot-testing of materials</h3><p class="muted" style="font-size:13px">New and revised materials are pilot-tested here before trainees use them.</p>
    <h3>Module status</h3><div class="mods">${units.map(u=>`<div class="mod cat-${u.category}"><div><span class="code">${esc(u.code)}</span><div class="ttl">${esc(u.title)}</div></div><div class="go"><span class="soon" style="background:#e6f6ec;color:#1d6b3d;border-color:#9fd8b2">Rev 00</span></div></div>`).join("")}</div>`;
  }
