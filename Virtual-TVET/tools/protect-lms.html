@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Protect LMS Simulators — Virtual TVET Access Lock</title>
+<style>
+  :root{--navy:#0b2a5b;--blue:#1f5fbf;--gold:#f2b705;--red:#c8102e;--ink:#1b2333;--muted:#5b6578;--paper:#fffdf7;--line:#e3ddd0}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;font-family:"Segoe UI",Roboto,system-ui,sans-serif;color:var(--ink)}
+  header{background:var(--navy);color:#fff;padding:14px 18px;border-bottom:5px solid var(--gold)}
+  header h1{margin:0;font-size:19px}header p{margin:3px 0 0;font-size:13px;color:var(--gold)}
+  main{max-width:980px;margin:0 auto;padding:16px}
+  .card{background:var(--paper);border:2px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+  h2{margin:0 0 8px;font-size:17px;color:var(--navy)}
+  ol{line-height:1.7;margin:6px 0;padding-left:20px}
+  input,select{font:inherit;padding:8px 10px;border:2px solid var(--line);border-radius:10px;width:100%;background:#fff}
+  #key{font-family:Consolas,monospace}
+  .btn{font:inherit;font-weight:800;border:0;border-radius:10px;padding:10px 14px;background:var(--blue);color:#fff;cursor:pointer;box-shadow:0 3px 0 #123f85;margin:8px 8px 0 0}
+  .btn.gold{background:var(--gold);color:var(--navy);box-shadow:0 3px 0 #b88a00}
+  .btn:disabled{opacity:.5;cursor:wait}
+  #log{font-family:Consolas,monospace;font-size:13px;background:#0f1a2e;color:#d6e2ff;border-radius:12px;padding:12px;max-height:340px;overflow:auto;white-space:pre-wrap;min-height:60px}
+  .muted{color:var(--muted);font-size:13px}
+  .warn{background:#fff3c4;border:1px solid #f2d36b;color:#5c4400;border-radius:10px;padding:10px 12px;font-size:13.5px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{border-bottom:1px solid var(--line);padding:6px 5px;text-align:left;vertical-align:middle}
+  th{color:var(--navy);font-size:12.5px}
+  td.n{white-space:nowrap;color:var(--muted);font-size:12.5px}
+  code{background:#f1ede2;border-radius:5px;padding:1px 5px}
+  footer{text-align:center;color:var(--muted);font-size:12px;padding:14px}
+</style>
+</head>
+<body>
+<header><h1>🔐 Protect LMS Simulators (encrypt for GitHub)</h1><p>Virtual TVET Campus · Access Lock</p></header>
+<main>
+  <div class="card">
+    <h2>What this does</h2>
+    <p>Turns each interactive LMS simulator folder into <b>locked pieces</b> (one <b>.enc</b> file per page, picture and video, with scrambled names). Only these pieces go to GitHub. A learner can open a simulator <b>only inside the campus</b>, after entering their PIN, while their access is active, on their own device. The pieces are unlocked in the phone's memory only; nothing readable is saved on the phone.</p>
+    <p class="muted">Your original folders are not changed. Everything runs on this PC; nothing is sent anywhere.</p>
+  </div>
+
+  <div class="card">
+    <h2>Step 1 · Put your simulators in an "LMS" folder</h2>
+    <ol>
+      <li>Inside your <b>EIM NC III CBLM</b> folder, make a new folder named <b>LMS</b>.</li>
+      <li>Copy each simulator folder into it (unzip the .zip ones first). Each folder must have its <b>index.html</b> inside, for example <code>LMS\MotorControl_LMS\index.html</code>.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>Step 2 · Paste the ContentKey</h2>
+    <p class="muted">Google Sheet → <b>Settings</b> tab → copy the value beside <b>ContentKey</b> (the same key you used for the CBLMs).</p>
+    <input id="key" placeholder="ContentKey from the Settings tab" autocomplete="off" spellcheck="false">
+  </div>
+
+  <div class="card">
+    <h2>Step 3 · Choose your "EIM NC III CBLM" folder</h2>
+    <button class="btn gold" id="pick">📁 Choose folder and find simulators</button>
+    <div id="noPick" class="warn" style="display:none;margin-top:10px">This browser cannot open folders. Use <b>Google Chrome</b> or <b>Microsoft Edge</b> on a PC.</div>
+    <div id="listBox" style="display:none;margin-top:12px">
+      <p class="muted">Check the name and unit of each simulator, then click <b>Protect</b>. The <b>Short name</b> becomes part of the web link, so keep it the same when you protect a revised version.</p>
+      <div style="overflow-x:auto"><table><thead><tr><th></th><th>Folder</th><th>Short name</th><th>Title shown in the campus</th><th>Unit</th><th>Files</th></tr></thead><tbody id="rows"></tbody></table></div>
+      <button class="btn" id="go">🔐 Protect the checked simulators</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Progress</h2>
+    <div id="log">Waiting…</div>
+  </div>
+
+  <div class="card">
+    <h2>Step 4 · Upload to GitHub</h2>
+    <ol>
+      <li>Open <b>GitHub-Upload (protected)</b>. You will see an <b>LMS</b> folder: one folder of .enc pieces per simulator, plus <b>lms-list.js</b>.</li>
+      <li>In your GitHub repository click <b>Add file → Upload files</b>, drag in the whole <b>LMS</b> folder, and click <b>Commit changes</b>. GitHub takes at most 100 files per upload: if a simulator has more, upload its folder in two parts (open <b>LMS</b> on GitHub, then upload the rest into the same simulator folder).</li>
+      <li>Never upload the plain simulator folders or their .zip files.</li>
+    </ol>
+    <p class="muted">When you revise a simulator, run this tool again and upload its folder and lms-list.js again. If you change the ContentKey, protect and upload everything again.</p>
+  </div>
+</main>
+<footer>Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu</footer>
+<script src="../catalog.js"></script>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const enc=new TextEncoder();
+const OUT="GitHub-Upload (protected)";
+const SKIP=/^(~\$|\.)|^(thumbs\.db|desktop\.ini)$|\.(zip|enc|tmp|bak)$/i;
+const MIME={html:"text/html; charset=utf-8",htm:"text/html; charset=utf-8",js:"text/javascript; charset=utf-8",mjs:"text/javascript; charset=utf-8",css:"text/css; charset=utf-8",
+  json:"application/json",txt:"text/plain; charset=utf-8",svg:"image/svg+xml",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",gif:"image/gif",webp:"image/webp",ico:"image/x-icon",
+  mp4:"video/mp4",webm:"video/webm",mp3:"audio/mpeg",wav:"audio/wav",ogg:"audio/ogg",m4a:"audio/mp4",pdf:"application/pdf",woff:"font/woff",woff2:"font/woff2",ttf:"font/ttf",otf:"font/otf",
+  glb:"model/gltf-binary",gltf:"model/gltf+json",wasm:"application/wasm",xml:"application/xml"};
+const UNITS=((window.VTVET_CATALOG||{}).units)||[];
+const log=t=>{const l=$('log');if(l.textContent==="Waiting…")l.textContent="";l.textContent+=t+"\n";l.scrollTop=l.scrollHeight;};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const cleanId=s=>String(s).replace(/[^A-Za-z0-9_-]+/g,"_").replace(/^_+|_+$/g,"").slice(0,60)||"LMS";
+
+/* Same rule as the Apps Script: simulator key = HMAC-SHA256(ContentKey, "LMS|" + short name) */
+async function lmsKey(contentKey,id){
+  const h=await crypto.subtle.importKey("raw",enc.encode(contentKey),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+  const raw=await crypto.subtle.sign("HMAC",h,enc.encode("LMS|"+id));
+  return crypto.subtle.importKey("raw",raw,"AES-GCM",false,["encrypt","decrypt"]);
+}
+/* piece format: "VTENC1" + 12-byte IV + AES-GCM ciphertext; the piece name is bound into the encryption */
+async function lock(key,id,piece,bytes){
+  const iv=crypto.getRandomValues(new Uint8Array(12)),ad=enc.encode("VTLMS|"+id+"|"+piece);
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv,additionalData:ad},key,bytes));
+  const out=new Uint8Array(18+ct.length);out.set(enc.encode("VTENC1"),0);out.set(iv,6);out.set(ct,18);
+  return out;
+}
+async function walk(dir,prefix,out){
+  for await(const [name,h] of dir.entries()){
+    if(SKIP.test(name))continue;
+    if(h.kind==="directory")await walk(h,prefix+name+"/",out);
+    else out.push({path:prefix+name,h});
+  }
+  return out;
+}
+async function hasIndex(dir){try{await dir.getFileHandle("index.html");return true;}catch(e){return false;}}
+async function readTitle(dir){
+  try{const t=await (await (await dir.getFileHandle("index.html")).getFile()).text();
+    const m=/<title[^>]*>([^<]*)<\/title>/i.exec(t);const code=UNITS.find(u=>t.includes(u.code));
+    return {title:m?m[1].trim():"",code:code?code.code:""};}catch(e){return{title:"",code:""};}
+}
+
+if(!window.showDirectoryPicker){$('noPick').style.display="block";$('pick').disabled=true;}
+let root=null,found=[];
+
+$('pick').onclick=async()=>{
+  try{root=await window.showDirectoryPicker({mode:"readwrite"});}catch(e){return;}
+  $('log').textContent="";found=[];
+  let lmsDir;
+  try{lmsDir=await root.getDirectoryHandle("LMS");}
+  catch(e){log("⚠ No \"LMS\" folder here. Make an LMS folder inside \"EIM NC III CBLM\", copy your simulator folders into it, then choose \"EIM NC III CBLM\" again.");return;}
+  for await(const [name,h] of lmsDir.entries()){
+    if(h.kind!=="directory")continue;
+    let dir=h,label=name;
+    if(!(await hasIndex(dir))){ // a folder that only wraps the real one (as after unzipping)
+      const subs=[];for await(const [n2,h2] of dir.entries())if(h2.kind==="directory"&&await hasIndex(h2))subs.push([n2,h2]);
+      if(subs.length!==1){log("skip "+name+" (no index.html inside)");continue;}
+      dir=subs[0][1];label=name+" / "+subs[0][0];
+    }
+    const files=await walk(dir,"",[]);
+    let size=0;for(const f of files)size+=(await f.h.getFile()).size;
+    const info=await readTitle(dir);
+    found.push({label,dir,files,size,id:cleanId(name),title:info.title||name.replace(/[_-]+/g," "),unit:info.code});
+  }
+  if(!found.length){log("⚠ No simulator folders with index.html were found inside LMS.");return;}
+  found.sort((a,b)=>a.label.localeCompare(b.label));
+  const opts=u=>`<option value="">(none)</option>`+UNITS.map(x=>`<option value="${esc(x.code)}"${x.code===u?" selected":""}>${esc(x.code)} · ${esc(x.title.slice(0,40))}</option>`).join("");
+  $('rows').innerHTML=found.map((f,i)=>`<tr><td><input type="checkbox" data-i="${i}" class="ck" checked style="width:auto"></td><td>${esc(f.label)}</td>
+    <td><input data-i="${i}" class="id" value="${esc(f.id)}" style="min-width:140px"></td><td><input data-i="${i}" class="tt" value="${esc(f.title)}" style="min-width:180px"></td>
+    <td><select data-i="${i}" class="un">${opts(f.unit)}</select></td><td class="n">${f.files.length} · ${(f.size/1048576).toFixed(1)} MB</td></tr>`).join("");
+  $('listBox').style.display="block";
+  log("Found "+found.length+" simulator(s). Check the list, then click Protect.");
+};
+
+$('go').onclick=async()=>{
+  const ck=$('key').value.trim();
+  if(ck.length<20){alert("Paste the ContentKey from the Settings tab of your Google Sheet first.");$('key').focus();return;}
+  const pick=[...document.querySelectorAll('.ck')].filter(c=>c.checked).map(c=>{const i=+c.dataset.i,f=found[i];
+    f.id=cleanId(document.querySelector('.id[data-i="'+i+'"]').value);f.title=document.querySelector('.tt[data-i="'+i+'"]').value.trim()||f.id;
+    f.unit=document.querySelector('.un[data-i="'+i+'"]').value;return f;});
+  if(!pick.length){alert("Check at least one simulator.");return;}
+  const ids=pick.map(f=>f.id);if(new Set(ids).size!==ids.length){alert("Two simulators have the same Short name. Make each one different.");return;}
+  $('go').disabled=true;$('pick').disabled=true;$('log').textContent="";
+  try{
+    const out=await (await root.getDirectoryHandle(OUT,{create:true})).getDirectoryHandle("LMS",{create:true});
+    // keep simulators protected earlier
+    let list=[];
+    try{const t=await (await (await out.getFileHandle("lms-list.js")).getFile()).text();
+      const j=t.slice(t.indexOf("["),t.lastIndexOf("]")+1);list=JSON.parse(j);}catch(e){list=[];}
+    for(const f of pick){
+      log("📦 "+f.title+"  ("+f.id+")");
+      try{await out.removeEntry(f.id,{recursive:true});}catch(e){}
+      const od=await out.getDirectoryHandle(f.id,{create:true});
+      const key=await lmsKey(ck,f.id);
+      const man={v:1,id:f.id,title:f.title,unit:f.unit,entry:"index.html",created:new Date().toISOString(),files:{}};
+      let n=0,bytes=0;
+      for(const file of f.files){
+        n++;const piece="f"+String(n).padStart(4,"0");
+        const data=new Uint8Array(await (await file.h.getFile()).arrayBuffer());
+        const w=await (await od.getFileHandle(piece+".enc",{create:true})).createWritable();
+        await w.write(await lock(key,f.id,piece,data));await w.close();
+        const ext=(file.path.split(".").pop()||"").toLowerCase();
+        man.files[file.path]={f:piece,t:MIME[ext]||"application/octet-stream",s:data.length};
+        bytes+=data.length;
+        if(n%25===0)log("   … "+n+" of "+f.files.length+" files");
+      }
+      const mw=await (await od.getFileHandle("manifest.enc",{create:true})).createWritable();
+      await mw.write(await lock(key,f.id,"manifest",enc.encode(JSON.stringify(man))));await mw.close();
+      // check: unlock the list of files again before going on
+      const chk=new Uint8Array(await (await (await od.getFileHandle("manifest.enc")).getFile()).arrayBuffer());
+      const back=await crypto.subtle.decrypt({name:"AES-GCM",iv:chk.slice(6,18),additionalData:enc.encode("VTLMS|"+f.id+"|manifest")},key,chk.slice(18));
+      if(JSON.parse(new TextDecoder().decode(back)).id!==f.id)throw new Error("check failed for "+f.id);
+      list=list.filter(x=>x.id!==f.id);
+      list.push({id:f.id,title:f.title,unit:f.unit,files:n,sizeMB:+(bytes/1048576).toFixed(1),updated:new Date().toISOString().slice(0,10)});
+      log("   ✔ "+n+" files locked ("+(bytes/1048576).toFixed(1)+" MB)");
+    }
+    list.sort((a,b)=>(!a.unit)-(!b.unit)||String(a.unit).localeCompare(String(b.unit))||a.title.localeCompare(b.title));
+    const js="// Virtual TVET - protected LMS simulators (made by tools/protect-lms.html)\n// Only the names are listed here. The simulators themselves are locked.\nwindow.VTVET_LMS = "+JSON.stringify(list,null,1)+";\n";
+    const lw=await (await out.getFileHandle("lms-list.js",{create:true})).createWritable();await lw.write(js);await lw.close();
+    log("\nDone: "+pick.length+" simulator(s) protected into \""+OUT+"\\LMS\". lms-list.js now lists "+list.length+".");
+  }catch(e){log("✖ Error: "+(e.message||e));}
+  $('go').disabled=false;$('pick').disabled=false;
+};
+window.__lms={lmsKey,lock}; // for testing
+})();
+</script>
+</body>
+</html>
