@@ -15,6 +15,19 @@
   button{font:inherit;cursor:pointer}
   .hidden{display:none!important}
 
+  /* learner watermark on campus screens */
+  .wm{position:absolute;inset:0;pointer-events:none;z-index:6;background-repeat:repeat;opacity:1}
+  /* protected LMS player */
+  #lmsBox{position:fixed;inset:0;z-index:40;background:#0b2a5b;display:flex;flex-direction:column}
+  #lmsBar{display:flex;align-items:center;gap:10px;padding:6px 10px;color:#fff;border-bottom:4px solid var(--gold);font-size:14px;min-height:46px}
+  #lmsBar b{color:var(--gold)}
+  #lmsBar .sp{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #lmsBar button{background:#fff;color:var(--navy);border:0;border-radius:10px;padding:7px 12px;font-weight:800}
+  #lmsFrame{flex:1;width:100%;border:0;background:#fff}
+  #lmsWait{position:absolute;inset:46px 0 0 0;display:grid;place-items:center;color:#fff;text-align:center;font-size:15px;background:#0b2a5b}
+  .simrow{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:2px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0}
+  .simrow .ttl{font-weight:800;color:var(--navy)}
+
   /* HUD */
   #hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:10px;pointer-events:none;gap:8px}
   .chip{pointer-events:auto;background:rgba(11,42,91,.92);color:#fff;border-radius:12px;padding:8px 12px;box-shadow:0 3px 0 rgba(0,0,0,.25);font-size:13px;line-height:1.25}
@@ -33,7 +46,7 @@
 
   /* overlays */
   .overlay{position:fixed;inset:0;background:rgba(10,20,40,.55);display:flex;align-items:center;justify-content:center;padding:14px;z-index:20}
-  .card{background:var(--paper);border-radius:18px;width:min(760px,100%);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 0 rgba(0,0,0,.25),0 20px 50px rgba(0,0,0,.3);border:3px solid var(--navy)}
+  .card{position:relative;background:var(--paper);border-radius:18px;width:min(760px,100%);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 0 rgba(0,0,0,.25),0 20px 50px rgba(0,0,0,.3);border:3px solid var(--navy)}
   .card header{padding:14px 18px;color:#fff;display:flex;align-items:center;gap:12px}
   .card header h2{margin:0;font-size:19px;line-height:1.2}
   .card header p{margin:2px 0 0;font-size:12.5px;opacity:.9}
@@ -192,6 +205,13 @@
   </div>
 </div>
 
+<!-- PROTECTED LMS PLAYER -->
+<div id="lmsBox" class="hidden">
+  <div id="lmsBar"><span>🧪</span><span class="sp"><b id="lmsTitle">Simulator</b> <span id="lmsWho" style="opacity:.85;font-size:12.5px"></span></span><button id="lmsClose">✕ Close</button></div>
+  <iframe id="lmsFrame" title="LMS simulator" allow="fullscreen; camera; xr-spatial-tracking; accelerometer; gyroscope" allowfullscreen></iframe>
+  <div id="lmsWait">⏳ Unlocking the simulator…</div>
+</div>
+
 <!-- AREA PANEL -->
 <div class="overlay hidden" id="panel">
   <div class="card">
@@ -205,6 +225,7 @@
 </div>
 
 <script src="catalog.js"></script>
+<script src="../LMS/lms-list.js"></script>
 <script src="config.js"></script>
 <script src="assessment-bank.js"></script>
 <script>
@@ -352,7 +373,7 @@ let SOL=solids();
 /* ---------- input ---------- */
 const keys={};
 addEventListener('keydown',e=>{
-  if(isUIOpen()){ if(e.key==="Escape") closePanel(); return; }
+  if(isUIOpen()){ if(e.key==="Escape"&&document.getElementById('lmsBox').classList.contains('hidden')) closePanel(); return; }
   keys[e.key.toLowerCase()]=true;
   if((e.key==="Enter"||e.key===" "||e.key.toLowerCase()==="e")&&nearArea){openArea(nearArea);e.preventDefault();}
   if(e.key.toLowerCase()==="m"){openDirectory();}
@@ -538,7 +559,7 @@ function showToast(a){
 }
 document.getElementById('enterBtn').onclick=()=>{if(nearArea)openArea(nearArea);};
 const panel=document.getElementById('panel');
-function isUIOpen(){return !panel.classList.contains('hidden')||!document.getElementById('start').classList.contains('hidden');}
+function isUIOpen(){return !document.getElementById('lmsBox').classList.contains('hidden')||!panel.classList.contains('hidden')||!document.getElementById('start').classList.contains('hidden');}
 function closePanel(){panel.classList.add('hidden');for(const k in keys)keys[k]=false;}
 document.getElementById('pClose').onclick=closePanel;
 panel.addEventListener('pointerdown',e=>{if(e.target===panel)closePanel();});
@@ -585,7 +606,7 @@ function saveSession(s){session=s;remembered={id:s.id,learner:s.learner};
   if(!DEMO)sstore.set("vtvet_tok",{id:s.id,token:s.token,access:s.access||null});
   if(s&&s.learner&&s.learner.avatar&&s.learner.avatar.hat!==undefined){av=Object.assign(av,s.learner.avatar);store.set("vtvet_avatar",av);}setWho();}
 function setAccess(a){if(!session||!a)return;session.access=a;if(!DEMO)sstore.set("vtvet_tok",{id:session.id,token:session.token,access:a});setWho();}
-function lockSession(){session=null;sstore.del("vtvet_tok");records={sag:{},pretest:{},needs:{},loaded:false};setWho();}
+function lockSession(){if(typeof lmsOpen!=="undefined"&&lmsOpen)closeLms();session=null;sstore.del("vtvet_tok");records={sag:{},pretest:{},needs:{},loaded:false};setWho();}
 function logout(){lockSession();remembered=null;try{localStorage.removeItem("vtvet_session")}catch(e){}setWho();}
 function accessOk(){
   if(!session)return false;
@@ -706,7 +727,7 @@ async function downloadUnit(code,btn){
   const u=unitBy(code);if(!u)return;
   if(!accessOk()){openArea(AREAS.find(x=>x.id==="ssa"));return;}
   const name=u.file.split('/').pop();
-  if(!CFG.protectedFiles||location.protocol==="file:"){const a=document.createElement('a');a.href=encodeURI(u.file);a.download=name;document.body.appendChild(a);a.click();a.remove();return;}
+  if(!CFG.protectedFiles||location.protocol==="file:"){const a=document.createElement('a');a.href=encodeURI(u.file);a.download=stampName(name);document.body.appendChild(a);a.click();a.remove();return;}
   const old=btn.textContent;btn.disabled=true;btn.textContent="Unlocking…";
   const done=t=>{btn.disabled=false;btn.textContent=t||old;};
   try{
@@ -722,7 +743,7 @@ async function downloadUnit(code,btn){
     let plain;
     try{plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:buf.slice(6,18)},key,buf.slice(18));}
     catch(e){done();alertBox("This file was protected with a different key. Ask your trainer to protect and upload it again.");return;}
-    saveBlob(new Blob([plain],{type:MIME[name.split('.').pop().toLowerCase()]||"application/octet-stream"}),name);
+    saveBlob(new Blob([plain],{type:MIME[name.split('.').pop().toLowerCase()]||"application/octet-stream"}),stampName(name));
     done("✔ Downloaded");setTimeout(()=>{if(btn.isConnected)btn.textContent=old;},3000);
   }catch(e){done();alertBox("Download failed. Check your internet connection and try again.");}
 }
@@ -971,6 +992,7 @@ function renderResult(r){
 
 function goTo(id){const a=AREAS.find(x=>x.id===id);if(!a)return;player.x=a.x+a.w/2;player.y=a.y+a.h+28;player.dir="up";closePanel();}
 document.getElementById('pBody').addEventListener('click',e=>{const d=e.target.closest('[data-dl]');if(d){downloadUnit(d.dataset.dl,d);return;}});
+document.getElementById('pBody').addEventListener('click',e=>{const d=e.target.closest('[data-lms]');if(d){openLms(d.dataset.lms,d);}});
 document.getElementById('pBody').addEventListener('click',e=>{const g=e.target.closest('[data-goto]');if(g){const id=g.dataset.goto;goTo(id);setTimeout(()=>{const a=AREAS.find(x=>x.id===id);if(a)openArea(a);},150);}});
 function nextStep(){
   if(!session&&remembered&&!DEMO)return{t:"Enter your PIN to open the campus",a:"ssa",i:"🔑"};
@@ -991,9 +1013,173 @@ setInterval(()=>{
   const a=session.access;
   if(a&&a.status==="active"&&Date.parse(a.expiresOn)<=Date.now()){
     setAccess(Object.assign({},a,{status:"expired",daysLeft:0}));
+    if(lmsOpen)closeLms("Your campus access has ended. Scan your trainer's QR code again to reopen it.");
     if(curArea&&curArea.id!=="ssa"&&curArea.id!=="tra"&&!panel.classList.contains('hidden'))openArea(curArea);
   }
 },30000);
+
+
+/* ================= PROTECTED LMS SIMULATORS (encrypted on GitHub, opened only inside the campus) =================
+   The simulator pieces (.enc) are unlocked in memory with a key from the Apps Script, given only while the
+   learner's access is active on their own device. lms-sw.js shows them in the player; nothing readable is saved. */
+const LMSLIST=Array.isArray(window.VTVET_LMS)?window.VTVET_LMS:[];
+const LMS_BASE=new URL("../LMS/",location.href).href;
+const LMS_CHECK_MIN=Math.max(1,Number(CFG.lmsCheckMinutes)||5);
+var lmsOpen=null,swReg=null;
+const lmsChan=("BroadcastChannel" in window)?new BroadcastChannel("vtvet-lms"):null;
+const lmsBy=id=>LMSLIST.find(x=>x.id===id);
+function stampName(name){const id=session&&session.id;if(!id)return name;const i=name.lastIndexOf(".");return i<0?name+" ("+id+")":name.slice(0,i)+" ("+id+")"+name.slice(i);}
+function simCard(x){
+  const u=x.unit?unitBy(x.unit):null;
+  return `<div class="simrow"><div><span class="code">${esc(x.unit||"LMS")}</span><div class="ttl">${esc(x.title)}</div><div class="meta">Interactive simulator${u?" · "+esc(u.title):""}${x.sizeMB?` · ${x.sizeMB} MB`:""}</div></div>
+    <div>${accessOk()?`<button class="btn" data-lms="${esc(x.id)}">▶ Open</button>`:`<button class="btn alt" data-goto="ssa">🔒 Unlock first</button>`}</div></div>`;
+}
+async function lmsWorker(){
+  if(!("serviceWorker" in navigator)||!window.crypto||!crypto.subtle)throw new Error("This browser cannot open protected simulators. Please update Chrome (Android/PC) or Safari (iPhone).");
+  if(!swReg)swReg=await navigator.serviceWorker.register("lms-sw.js",{scope:"./lms-run/"});
+  if(swReg.active)return swReg;
+  const w=swReg.installing||swReg.waiting;
+  if(w)await new Promise(res=>{const t=setTimeout(res,10000);w.addEventListener("statechange",()=>{if(w.state==="activated"){clearTimeout(t);res();}});});
+  if(!swReg.active)throw new Error("The simulator player could not start. Close this tab, open the campus again and try once more.");
+  return swReg;
+}
+async function lmsPiece(id,piece,key,reload){
+  const r=await fetch(LMS_BASE+encodeURIComponent(id)+"/"+piece+".enc",{cache:reload?"reload":(piece==="manifest"?"no-store":"default")});
+  if(!r.ok)throw new Error(r.status===404?"missing":"net");
+  const buf=new Uint8Array(await r.arrayBuffer());
+  if(new TextDecoder().decode(buf.slice(0,6))!=="VTENC1")throw new Error("bad");
+  try{return await crypto.subtle.decrypt({name:"AES-GCM",iv:buf.slice(6,18),additionalData:new TextEncoder().encode("VTLMS|"+id+"|"+piece)},key,buf.slice(18));}
+  catch(e){if(!reload)return lmsPiece(id,piece,key,true);throw new Error("key");} // an old copy may still be cached right after an update
+}
+function lmsLookup(path){
+  const F=lmsOpen.man.files;
+  path=path.replace(/^\.?\//,"");
+  if(F[path])return F[path];
+  if(!lmsOpen.lower){lmsOpen.lower={};for(const k in F)lmsOpen.lower[k.toLowerCase()]=F[k];}
+  return lmsOpen.lower[path.toLowerCase()]||null;
+}
+function wmText(){const l=session&&session.learner;return{name:(fullName(l)||av.name||"Learner"),id:(session&&session.id)||"",date:new Date().toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"})};}
+// the guard added to every page of a simulator: learner watermark, live lock, expiry
+function lmsGuard(){
+  const w=wmText(),a=(session&&session.access)||{};
+  const C={id:lmsOpen.id,name:w.name,tid:w.id,date:w.date,exp:Date.parse(a.expiresOn)||0,
+    credit:"Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu"};
+  return `<script>/* Virtual TVET access guard */(function(){"use strict";var C=${JSON.stringify(C).replace(/</g,"\\u003c")};
+var dead=false,seen=Date.now(),ch=null;try{ch=new BroadcastChannel("vtvet-lms");}catch(e){}
+function lock(t){if(dead)return;dead=true;
+ document.documentElement.innerHTML='<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Access expired</title></head><body style="margin:0;font-family:Segoe UI,Roboto,sans-serif;background:#0b2a5b;color:#fff;display:grid;place-items:center;min-height:100vh;text-align:center"><div style="padding:24px;max-width:420px"><div style="font-size:54px">&#128274;</div><h2 style="margin:6px 0">Access expired</h2><p style="line-height:1.5">'+(t||"Open this simulator from the Virtual TVET campus, after entering your PIN.")+'</p><p style="font-size:12px;color:#f2b705;margin-top:18px">Virtual TVET Campus &middot; RTC-Cebu</p></div></body>';}
+if(location.pathname.indexOf("/lms-run/")<0){lock();return;}
+if(C.exp&&Date.now()>C.exp){lock("Your campus access has expired. Scan your trainer's QR code again.");return;}
+if(ch){ch.onmessage=function(e){var m=e.data||{};if(m.id!==C.id)return;if(m.type==="alive")seen=Date.now();if(m.type==="lock")lock(m.text);};}
+function ping(){if(ch)ch.postMessage({type:"ping",id:C.id});}
+var tick=Date.now();
+setInterval(function(){if(dead)return;var now=Date.now();if(now-tick>30000)seen=now;tick=now;if(C.exp&&Date.now()>C.exp)lock("Your campus access has expired. Scan your trainer's QR code again.");
+ ping();if(ch&&Date.now()-seen>45000)lock("The campus was closed. Open this simulator from the Virtual TVET campus.");},15000);
+ping();
+var nested=false;try{nested=window.parent!==window&&parent.location.pathname.indexOf("/lms-run/")>=0;}catch(e){}
+if(nested)return;
+function x(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+var svg='<svg xmlns="http://www.w3.org/2000/svg" width="380" height="220"><g transform="rotate(-22 190 110)" font-family="Segoe UI,Arial,sans-serif" text-anchor="middle" fill="rgba(11,42,91,.11)"><text x="190" y="104" font-size="16" font-weight="700">'+x(C.name+" · "+C.tid)+'</text><text x="190" y="125" font-size="11.5">'+x(C.date+" · Virtual TVET · RTC-Cebu")+'</text></g></svg>';
+var bg='url("data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)+'")';
+var css="position:fixed!important;inset:0!important;pointer-events:none!important;z-index:2147483646!important;background-image:"+bg+"!important;background-repeat:repeat!important;display:block!important;opacity:1!important;visibility:visible!important";
+var css2="position:fixed!important;left:6px!important;bottom:4px!important;pointer-events:none!important;z-index:2147483647!important;font:10px/1.2 Segoe UI,Arial,sans-serif!important;color:rgba(11,42,91,.55)!important;background:rgba(255,255,255,.55)!important;padding:2px 6px!important;border-radius:6px!important;display:block!important;opacity:1!important;visibility:visible!important";
+var wm,ft,mo=null;try{mo=new MutationObserver(function(){put();});}catch(e){}
+function mk(){var e=document.createElement("vt-wm");document.documentElement.appendChild(e);if(mo)mo.observe(e,{attributes:true,childList:true,characterData:true,subtree:true});return e;}
+function put(){if(dead)return;var r=document.documentElement;if(!r)return;
+ if(!wm||!wm.isConnected)wm=mk();
+ if(!ft||!ft.isConnected)ft=mk();
+ if(wm.getAttribute("style")!==css)wm.setAttribute("style",css);
+ if(ft.getAttribute("style")!==css2)ft.setAttribute("style",css2);
+ var t="Licensed to "+C.name+" ("+C.tid+") · "+C.credit;if(ft.textContent!==t)ft.textContent=t;}
+put();
+if(mo)mo.observe(document.documentElement,{childList:true});
+document.addEventListener("DOMContentLoaded",put);setInterval(put,2000);
+var ps=document.createElement("style");ps.textContent="@media print{vt-wm{display:none!important}}";(document.head||document.documentElement).appendChild(ps);
+})();<\/script>`;
+}
+async function lmsFile(path){
+  const f=lmsLookup(path);
+  if(!f)return null;
+  let buf=lmsOpen.cache.get(f.f);
+  if(!buf){buf=await lmsPiece(lmsOpen.id,f.f,lmsOpen.key);
+    if(/^text\/html/.test(f.t)){const t=new TextDecoder().decode(buf),g=lmsGuard();
+      const m=/<head[^>]*>/i.exec(t);buf=new TextEncoder().encode(m?t.slice(0,m.index+m[0].length)+g+t.slice(m.index+m[0].length):g+t).buffer;}
+    lmsOpen.cache.set(f.f,buf);}
+  return {type:f.t,data:buf};
+}
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.addEventListener("message",async e=>{
+    const m=e.data;if(!m||m.type!=="vt-lms-file"||!e.ports[0])return;
+    const port=e.ports[0];
+    if(!lmsOpen||lmsOpen.id!==m.id)return port.postMessage({ok:false,error:"Open this simulator from the Virtual TVET campus."});
+    if(!accessOk())return port.postMessage({ok:false,error:"Your campus access is locked. Enter your PIN, or scan your trainer's QR code again."});
+    try{const r=await lmsFile(m.path);
+      if(!r)return port.postMessage({ok:false,missing:true});
+      const copy=r.data.slice(0);port.postMessage({ok:true,type:r.type,data:copy},[copy]);
+    }catch(x){port.postMessage({ok:false,missing:x.message==="missing",error:"This part of the simulator could not be opened. Check your internet connection."});}
+  });
+  try{navigator.serviceWorker.startMessages();}catch(e){}
+}
+if(lmsChan)lmsChan.onmessage=e=>{const m=e.data||{};
+  if(m.type==="ping"&&lmsOpen&&lmsOpen.id===m.id)lmsChan.postMessage(accessOk()?{type:"alive",id:m.id}:{type:"lock",id:m.id});};
+function closeLms(text){
+  const was=lmsOpen;lmsOpen=null;
+  if(was){clearInterval(was.timer);was.cache.clear();if(lmsChan)lmsChan.postMessage({type:"lock",id:was.id,text:text||""});}
+  document.getElementById('lmsFrame').src="about:blank";
+  document.getElementById('lmsBox').classList.add('hidden');
+  if(text){openArea(AREAS.find(x=>x.id==="ssa"));setTimeout(()=>alertBox(text),300);}
+}
+async function lmsCheckNow(){
+  if(!lmsOpen)return;
+  if(!accessOk()){closeLms("Your campus access has ended. Scan your trainer's QR code again to reopen it.");return;}
+  const r=await api("lmsCheck",{id:session.id,token:session.token});
+  if(!lmsOpen)return;
+  if(r.ok){if(r.access)setAccess(r.access);return;}
+  if(r.locked){if(!r.access)lockSession();closeLms(r.error||"Your campus access is locked.");}
+  // no internet: keep going until the access end date (checked every 15 seconds)
+}
+async function openLms(id,btn){
+  const x=lmsBy(id);if(!x)return;
+  if(!accessOk()){openArea(AREAS.find(a=>a.id==="ssa"));return;}
+  if(DEMO||location.protocol==="file:"){alertBox("Protected simulators open only on the online campus (your GitHub link), after you log in with your PIN.");return;}
+  const old=btn?btn.textContent:"";if(btn){btn.disabled=true;btn.textContent="Unlocking…";}
+  const done=()=>{if(btn){btn.disabled=false;btn.textContent=old;}};
+  try{
+    await lmsWorker();
+    const k=await api("lmsKey",{id:session.id,token:session.token,lms:id});
+    if(!k.ok){done();if(k.locked&&!k.access)lockSession();alertBox(k.error||"Could not open this simulator.");if(k.locked)setTimeout(()=>openArea(AREAS.find(a=>a.id==="ssa")),1400);return;}
+    if(k.access)setAccess(k.access);
+    const key=await crypto.subtle.importKey("raw",Uint8Array.from(atob(k.key),c=>c.charCodeAt(0)),"AES-GCM",false,["decrypt"]);
+    let man;
+    try{man=JSON.parse(new TextDecoder().decode(await lmsPiece(id,"manifest",key)));}
+    catch(e){done();alertBox(e.message==="missing"?"This simulator is not online yet. Ask your trainer to upload it.":e.message==="key"?"This simulator was protected with a different key. Ask your trainer to protect and upload it again.":"Could not download the simulator. Check your internet connection and try again.");return;}
+    if(lmsOpen)closeLms();
+    lmsOpen={id,title:x.title,key,man,cache:new Map(),timer:setInterval(lmsCheckNow,LMS_CHECK_MIN*60000)};
+    const w=wmText();
+    document.getElementById('lmsTitle').textContent=x.title;
+    document.getElementById('lmsWho').textContent="· "+w.name+" ("+w.id+")";
+    document.getElementById('lmsWait').classList.remove('hidden');
+    document.getElementById('lmsBox').classList.remove('hidden');
+    closePanel();
+    const fr=document.getElementById('lmsFrame');
+    fr.src="lms-run/"+encodeURIComponent(id)+"/"+(man.entry||"index.html");
+    const t0=Date.now(),wt=setInterval(()=>{let d=null;try{d=fr.contentDocument;}catch(e){}
+      if(Date.now()-t0>9000||(d&&d.readyState!=="loading"&&/\/lms-run\//.test(d.location.pathname))){clearInterval(wt);document.getElementById('lmsWait').classList.add('hidden');}},200);
+    done();
+  }catch(e){done();alertBox(e.message||"Could not open this simulator.");}
+}
+document.getElementById('lmsClose').onclick=()=>closeLms();
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&lmsOpen)lmsCheckNow();});
+// learner watermark on the campus screens
+function wmBg(){const w=wmText();const xe=t=>String(t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="280" height="170"><g transform="rotate(-24 140 85)" font-family="Segoe UI,Arial,sans-serif" text-anchor="middle" fill="rgba(11,42,91,.075)"><text x="140" y="80" font-size="16" font-weight="700">${xe(w.name+" · "+w.id)}</text><text x="140" y="101" font-size="11">${xe(w.date+" · Virtual TVET · RTC-Cebu")}</text></g></svg>`;
+  return `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}")`;}
+function setPanelWm(){
+  const card=panel.querySelector('.card');let e=document.getElementById('pWm');
+  if(!session||DEMO){if(e)e.remove();return;}
+  if(!e){e=document.createElement('div');e.id='pWm';e.className='wm';card.appendChild(e);}
+  e.style.backgroundImage=wmBg();
+}
 
 /* ================= PHASE 2b: RPL Self-Assessment, pre-test & training needs ================= */
 const BANK=window.VTVET_BANK||{};
@@ -1191,11 +1377,12 @@ const AREA_CONTENT={
  },
  pwa(){
    const core=byCat("Core"),common=byCat("Common");
-   return `<p>The heart of the CBT workshop. Workstations are arranged by the hierarchy of competencies. Your interactive simulators will be installed here as workstations. ${soon("Phase 3")}</p>
+   return `<p>The heart of the CBT workshop. Workstations are arranged by the hierarchy of competencies. Open the interactive simulators below.</p>
    <h3>Core workstations</h3><div class="grid2">${core.map((u,i)=>`<div class="tile"><b>Workstation ${i+1} · ${esc(u.code)}</b>${esc(u.title)}<div style="margin-top:8px">${accessOk()?`<button class="btn alt" data-dl="${esc(u.code)}">CBLM</button>`:""}</div></div>`).join("")}</div>
    <h3>Common skills stations</h3><div class="grid2">${common.map(u=>`<div class="tile"><b>${esc(u.code)}</b>${esc(u.title)}</div>`).join("")}</div>
-   <h3>Planned simulators (interactive LMS)</h3>
-   <ul class="plan"><li>Tester Reading (analog multitester)</li><li>Basic Electrical Safety</li><li>Wiring Exercise</li><li>Digital multimeter AR station</li></ul>`;
+   <h3>🧪 Interactive simulators (LMS)</h3>
+   ${LMSLIST.length?LMSLIST.map(simCard).join(""):`<p class="muted">No simulators are online yet.</p>`}
+   <p class="muted" style="font-size:12.5px">Simulators open inside the campus only, while your access is active. They need internet.</p>`;
  },
  iaa(){ setTimeout(renderIAA); return ""; },
  ssa(){ setTimeout(renderSSA); return ""; },
@@ -1213,7 +1400,8 @@ const AREA_CONTENT={
  },
  dla(){
    return `<p>Learn anywhere: once this campus is online, you can open it on your phone or PC and download modules for offline study. ${soon("Phase 2")}</p>
-   <h3>All CBLMs in one place</h3><div class="mods">${units.map(u=>modCard(u)).join("")}</div>`;
+   <h3>All CBLMs in one place</h3><div class="mods">${units.map(u=>modCard(u)).join("")}</div>
+   ${LMSLIST.length?`<h3>🧪 Simulators</h3>${LMSLIST.map(simCard).join("")}`:""}`;
  },
  tra(){
    return `<p>🔒 <b>Trainers only.</b> Show the activation QR code, manage the NFC tag, and extend, lock or revoke learners' access.</p>
@@ -1260,7 +1448,7 @@ document.getElementById('btnMap').onclick=openDirectory;
 document.getElementById('btnHelp').onclick=openHelp;
 document.getElementById('btnAvatar').onclick=()=>{initAvatarUI();document.getElementById('start').classList.remove('hidden');};
 
-function setWho(){const w=document.getElementById('who');const n=nextStep();
+function setWho(){setPanelWm();const w=document.getElementById('who');const n=nextStep();
   const nm=session?fullName(session.learner)||av.name:remembered&&!DEMO?fullName(remembered.learner)||av.name:(av.name||"Visitor");
   const st=DEMO?"":accessState(),lk=!DEMO&&(session||remembered)?(st==="active"?` · 🔓 ${session.access.daysLeft}d left`:" · 🔒 Locked"):"";
   w.innerHTML=`👷 <b>${esc(nm)}</b><br>${session?esc(session.id):remembered&&!DEMO?esc(remembered.id):"Not registered"} · ${esc(CAT.short||CAT.qualification)}${lk}<button class="quest" id="questBtn">${n.i} Next: ${esc(n.t)} ▶</button>`;
@@ -1279,7 +1467,7 @@ setInterval(()=>{if(!document.getElementById('start').classList.contains('hidden
 initAvatarUI();
 loop();
 // expose for testing
-window.__vt={player,AREAS,openArea};
+window.__vt={player,AREAS,openArea,openLms,closeLms,lmsCheckNow,get lmsOpen(){return lmsOpen;}};
 })();
 </script>
 </body>

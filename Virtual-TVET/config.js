@@ -9,5 +9,10 @@ window.VTVET_CONFIG = {
   campusUrl: "https://leonilryan-hub.github.io/Virtual-TVET/Virtual-TVET/",
   // true = CBLMs are downloaded from the protected (.enc) copies made with tools/protect-files.html.
   // Set to true only AFTER you have uploaded the .enc files to GitHub.
-  protectedFiles: true
+  protectedFiles: true,
+
+  // PROTECTED LMS SIMULATORS
+  // How often (minutes) an open simulator asks the Google Sheet if the learner is still allowed
+  // (Revoke / Lock now / expiry take effect within this time).
+  lmsCheckMinutes: 5
 };
