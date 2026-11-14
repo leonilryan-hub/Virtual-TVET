@@ -336,7 +336,7 @@ function card(x){
   return `<div class="lr" data-id="${esc(x.id)}">
    <div class="h" data-act="toggle"><div class="nm"><b>${esc(x.name)}</b> <span class="code" style="font-size:12px;letter-spacing:0">${esc(x.id)}</span>
      <small>${esc(sub)}${x.device?` · 📱 device ${esc(x.device)}`:""}${x.lockDays?` · ${x.lockDays}-day lock`:""}${x.paused?` · ⏸ PIN paused`:""}</small>
-     <small>${x.tip?"🎒 TIP ✔":"🎒 TIP —"} · ${x.contract?"✍️ Contract ✔":"✍️ Contract —"}${x.na&&x.na.status?` · 🏅 NA: <b>${esc(NAL[x.na.status]||x.na.status)}</b>`:""}</small></div>
+     <small>${x.tip?"🎒 TIP ✔":"🎒 TIP —"} · ${x.contract?"✍️ Contract ✔":"✍️ Contract —"}${x.na&&x.na.status?` · 🏅 NA: <b>${esc(NAL[x.na.status]||x.na.status)}</b>`:""} · ${x.jip?"💼 JIP ✔":"💼 JIP —"}</small></div>
      <span class="chip st-${x.status}">${STL[x.status]}</span></div>
    ${open?`<div class="acts">
      <div class="row"><div><label>Add days</label><input type="number" min="1" max="3650" id="dExt" value="${S.lockDays||30}"></div>
