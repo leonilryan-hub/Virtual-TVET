@@ -262,7 +262,7 @@
         <button class="btn gold big" id="startBtn">Enter Campus ▶</button>
       </div>
     </div>
-    <div class="credit">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu · Version 1.3</div>
+    <div class="credit">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu · Version 1.4</div>
   </div>
 </div>
 
@@ -922,6 +922,7 @@ function renderSSA(note){
       <button class="btn ${l.tip?"alt":"gold"}" id="goTip">🎒 ${l.tip?"Training Induction Program":"Start the Training Induction Program ▶"}</button>
       <button class="btn ${l.contract||!l.tip?"alt":"gold"}" id="goContract">✍️ ${l.contract?"My Learning Contract":"Learning Contract"}</button>
       <button class="btn ${l.jip||!(l.na&&l.na.status)?"alt":"gold"}" id="goJip">💼 Job Induction Program${l.jip?" ✔":""}</button>
+      ${DEMO?"":`<button class="btn alt" id="goAtt">🗓️ My attendance</button>`}
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
       <button class="btn ${done||!l.tip?"alt":"gold"}" id="goTest">${done?"Retake Learner-Type Test":"Take the Learner-Type Test ▶"}</button>
@@ -929,7 +930,7 @@ function renderSSA(note){
     </div>${demoNote()}`);
   drawTrainee(document.getElementById('idCv').getContext('2d'),35,72,1.25,"down",0,av);
   document.getElementById('goTest').onclick=renderTest;
-  document.getElementById('goTip').onclick=renderTIP;document.getElementById('goContract').onclick=renderContract;document.getElementById('goJip').onclick=renderJIP;
+  document.getElementById('goTip').onclick=renderTIP;document.getElementById('goContract').onclick=renderContract;document.getElementById('goJip').onclick=renderJIP;const ga=document.getElementById('goAtt');if(ga)ga.onclick=renderMyAttendance;
   document.getElementById('goOut').onclick=()=>{if(DEMO)logout();else lockSession();renderSSA();};
   wireLockBox();
 }
@@ -1657,7 +1658,8 @@ const AREA_CONTENT={
    return `<p>🔒 <b>Trainers only.</b> Show the activation QR code, manage the NFC tag, and extend, lock or revoke learners' access.</p>
    <div style="margin:10px 0 4px"><a class="btn gold big" href="trainer.html" target="_blank" rel="noopener">🔐 Open the Trainer Page</a></div>
    <h3>On the Trainer Page</h3>
-   <ul class="plan"><li>📲 Activation QR code and NFC tag</li><li>👥 Learners: extend, lock, revoke, reset PIN or device</li><li>📈 Progress Chart and Achievement Chart: mark LOs and units Competent</li><li>📘 Print each learner's Trainee's Record Book</li><li>🎓 Certificates of Achievement: open, revoke, restore</li></ul>`;
+   <ul class="plan"><li>📲 Activation QR code and NFC tag</li><li>👥 Learners: extend, lock, revoke, reset PIN or device</li><li>📈 Progress Chart and Achievement Chart: mark LOs and units Competent</li><li>📘 Print each learner's Trainee's Record Book</li><li>🎓 Certificates of Achievement: open, revoke, restore</li><li>🎒 TIP, learning contract, National Assessment and JIP status</li><li>🗓️ Daily attendance and attendance summary</li><li>📁 Training Plan, Training Activity Matrix and Session Plans</li></ul>
+   <h3>📁 Training documents for trainees</h3><p class="muted" style="font-size:13px">Your Training Plan, Training Activity Matrix and other documents your trainer shares with you.</p><div id="docBox"></div>`;
  },
  qca(){
    return `<p>Your <b>Progress Chart</b> and <b>Achievement Chart</b> are posted here. They update by themselves from your Self-Assessment and pre-test, and when your trainer confirms your competencies.</p>
@@ -1670,6 +1672,7 @@ function openArea(a){
   curArea=a;noteArea(a.id);
   if(a.id!=="ssa"&&a.id!=="tra"&&!accessOk()){openPanel(a.roof,a.icon,a.name,a.sub,"");renderLocked(a);return;}
   openPanel(a.roof,a.icon,a.name,a.sub,AREA_CONTENT[a.id]());
+  if(a.id==="tra")mountDocs();
   if(a.id==="cll")setTimeout(()=>{
     const V=document.getElementById('oV'),I=document.getElementById('oI'),R=document.getElementById('oR'),O=document.getElementById('oOut');
     const n=v=>v.value.trim()===""?null:parseFloat(v.value);
@@ -1959,6 +1962,33 @@ async function renderResume(){
       ${sec("Work experience",para(cv.experience))}
       ${sec("References",para(cv.references))}
       <script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script></body></html>`);w.document.close();};
+}
+
+/* ================= TRAINING DOCUMENTS (shared by the trainer) · MY ATTENDANCE ================= */
+async function mountDocs(){
+  const box=document.getElementById('docBox');if(!box)return;
+  if(!session||DEMO){box.innerHTML=`<p class="muted" style="font-size:13px">Log in at the Support Service Area to see the training documents your trainer shares.</p>`;return;}
+  box.innerHTML=`<p class="muted">Loading…</p>`;
+  const r=await api("learnerDocs",{id:session.id,token:session.token});
+  if(!document.getElementById('docBox'))return;
+  if(!r.ok){box.innerHTML=`<p class="muted">${esc(r.error)}</p>`;return;}
+  const types=[...new Set(r.docs.map(d=>d.type))];
+  box.innerHTML=r.docs.length?types.map(t=>`<p style="margin:10px 0 4px"><b>${esc(t)}</b></p><div class="jlinks">${r.docs.filter(d=>d.type===t).map(d=>{const u=d.code&&unitBy(d.code);
+    return`<a href="${esc(d.url)}" target="_blank" rel="noopener"><b>${esc(d.title)} ↗</b><span>${u?esc(u.code+" · "+u.title):"Whole program"}</span></a>`;}).join("")}</div>`).join(""):
+   `<p class="muted" style="font-size:13px">Your trainer has not shared any documents yet.</p>`;
+}
+const ATT_L={P:["Present","#1d6b3d","#d9f2e2"],L:["Late","#b45309","#fdecc8"],A:["Absent","#8a0f22","#fde8ea"],E:["Excused","#1f5fbf","#e3edfb"]};
+async function renderMyAttendance(){
+  setBody(`<p class="muted">Loading your attendance…</p>`);
+  const r=await api("myAttendance",{id:session.id,token:session.token});
+  if(!r.ok){setBody(`<div class="err">${esc(r.error)}</div><button class="btn alt" id="maBack">◀ Back</button>`);document.getElementById('maBack').onclick=()=>renderSSA();return;}
+  const s=r.summary;
+  setBody(`<p><b>🗓️ My attendance</b> · recorded by your trainer.</p>
+   <div class="grid4"><div class="stat"><b>${s.P}</b>Present</div><div class="stat"><b>${s.L}</b>Late</div><div class="stat"><b>${s.A}</b>Absent</div><div class="stat"><b>${s.rate===null?"—":s.rate+"%"}</b>Attendance</div></div>
+   <p class="muted" style="font-size:12.5px">Attendance % = (Present + Late) ÷ (Present + Late + Absent). ${s.E} excused day${s.E===1?"":"s"} not counted against you. Scholars: check the attendance your scholarship requires.</p>
+   ${r.days.length?`<table class="rwT">${r.days.map(d=>`<tr><td>${esc(fmtDate(d.date))}${d.note?`<br><span class="muted" style="font-size:12px">${esc(d.note)}</span>`:""}</td><td><span class="soon" style="background:${ATT_L[d.s][2]};color:${ATT_L[d.s][1]};border-color:transparent">${ATT_L[d.s][0]}</span></td></tr>`).join("")}</table>`:`<p class="muted">No attendance recorded yet.</p>`}
+   <div style="margin-top:12px"><button class="btn alt" id="maBack">◀ Back</button></div>`);
+  document.getElementById('maBack').onclick=()=>renderSSA();
 }
 
 /* ================= RPG REWARDS: XP, levels & badges =================
