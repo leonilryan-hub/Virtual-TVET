@@ -54,6 +54,16 @@
   .rwB{border:2px dashed #cfd5df;border-radius:12px;padding:8px;text-align:center;background:#f7f8fa;color:#8a93a3}
   .rwB span{font-size:26px;display:block;filter:grayscale(1);opacity:.6}.rwB b{display:block;font-size:12.5px}.rwB small{display:block;font-size:11px;line-height:1.3;margin-top:2px}
   .rwB.on{border:2px solid #f2b705;background:#fffaf0;color:#3d2c00}.rwB.on span{filter:none;opacity:1}
+  .tipS{border:2px solid #e3e7ef;border-radius:12px;margin:8px 0;background:#fff}.tipS summary{cursor:pointer;padding:10px 12px;font-weight:800;color:var(--navy);list-style:none;display:flex;gap:6px;align-items:center}
+  .tipS summary::-webkit-details-marker{display:none}.tipS[open] summary{border-bottom:1px solid #eef0f4}.tipOk{margin-left:auto;color:#1d6b3d}
+  .tipB{padding:4px 14px 12px;font-size:13.5px;line-height:1.55}.tipl{margin:6px 0;padding-left:20px}.tipl li{margin:4px 0}
+  .tipC{display:flex;gap:8px;align-items:center;margin-top:10px;font-weight:800;color:#1d6b3d;background:#eef8f1;border-radius:8px;padding:8px 10px;cursor:pointer}.tipC input{width:18px;height:18px}
+  .contract{background:#fff;border:2px solid #d8dde7;border-radius:12px;padding:16px;font-size:13.5px;line-height:1.55}.contract h4{margin:14px 0 4px;color:var(--navy)}
+  .ctform{margin-top:12px}.ctform label{display:block;font-weight:700;font-size:13px}.ctform input#ctName{width:100%;box-sizing:border-box;padding:10px;border:2px solid #cfd5df;border-radius:10px;font-size:15px;margin-top:4px}
+  .sig2{display:flex;gap:30px;margin-top:34px}.sig2 div{flex:1;border-top:1px solid #333;text-align:center;padding-top:4px;font-size:12px}
+  .ok{background:#e6f6ec;color:#1d6b3d;border:1px solid #a9dcb9;border-radius:10px;padding:8px 10px;font-size:13.5px;margin:10px 0}
+  .nacard{margin:10px 0;border:2px solid #f2d36b;background:#fffaf0}.nacard p{font-size:13.5px;margin:6px 0}
+  .nasteps{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.nasteps span{font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;background:#eef0f4;color:#8a93a3}.nasteps span.on{background:#d9f2e2;color:#1d6b3d}
   .rwT{width:100%;border-collapse:collapse;font-size:13px}.rwT td{border-bottom:1px solid #eee;padding:5px 4px}.rwT td:last-child{text-align:right;font-weight:800;color:#1d6b3d;white-space:nowrap}
   #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(255,253,247,.97);border:3px solid var(--navy);border-radius:14px;padding:10px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 4px 0 rgba(0,0,0,.25);max-width:92vw}
   #toast .t{font-size:14px}
@@ -250,7 +260,7 @@
         <button class="btn gold big" id="startBtn">Enter Campus ▶</button>
       </div>
     </div>
-    <div class="credit">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu · Version 1.1</div>
+    <div class="credit">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu · Version 1.2</div>
   </div>
 </div>
 
@@ -807,7 +817,7 @@ function uuid(){return (crypto.randomUUID?crypto.randomUUID():String(Date.now())
 async function demoApi(action,p){
   if(["getAssessments","saveSAG","scorePretest"].includes(action))return demoAssess(action,p);
   const db=store.get("vtvet_demo_db",{learners:[],types:[]});
-  const view=r=>({id:r.id,firstName:r.profile.firstName,lastName:r.profile.lastName,qualification:r.profile.qualification,learnerType:r.learnerType||"",avatar:r.avatar||{}});
+  const view=r=>({id:r.id,firstName:r.profile.firstName,lastName:r.profile.lastName,qualification:r.profile.qualification,learnerType:r.learnerType||"",avatar:r.avatar||{},tip:r.tip||"",contract:r.contract||"",na:{status:""}});
   const norm=s=>String(s||"").trim().toLowerCase().replace(/\s+/g," ");
   const authd=()=>db.learners.find(r=>r.id===String(p.id||"").toUpperCase()&&r.token===p.token);
   if(action==="register"){
@@ -827,6 +837,8 @@ async function demoApi(action,p){
   if(action==="me"){const r=authd();return r?{ok:true,learner:view(r)}:{ok:false,error:"Session expired. Please log in again."};}
   if(action==="saveLearnerType"){const r=authd();if(!r)return{ok:false,error:"Session expired. Please log in again."};
     r.learnerType=p.result.dominant;db.types.push(Object.assign({id:r.id,date:new Date().toISOString()},p.result));store.set("vtvet_demo_db",db);return{ok:true,learner:view(r)};}
+  if(action==="completeTIP"||action==="signContract"){const r=authd();if(!r)return{ok:false,error:"Session expired. Please log in again."};
+    const k=action==="completeTIP"?"tip":"contract";if(!r[k])r[k]=new Date().toISOString().slice(0,10);store.set("vtvet_demo_db",db);return{ok:true,learner:view(r)};}
   return{ok:false,error:"Unknown action."};
 }
 
@@ -899,16 +911,22 @@ function renderSSA(note){
     <ol class="steps">
       <li class="done">✔ Registration & Learner Profile</li>
       ${DEMO?"":`<li class="${accessOk()?"done":"now"}">${accessOk()?"✔":"➜"} Unlock the campus with your trainer's QR code / NFC tag</li>`}
-      <li class="${done?"done":"now"}">${done?"✔":"➜"} Learner-Type Test (trainee characteristics)</li>
+      <li class="${l.tip?"done":"now"}">${l.tip?"✔":"➜"} Training Induction Program (TIP): orientation</li>
+      <li class="${done?"done":l.tip?"now":"later"}">${done?"✔":l.tip?"➜":""} Learner-Type Test (trainee characteristics)</li>
       <li class="${!done?"later":Object.keys(records.sag).length?"done":"now"}">${Object.keys(records.sag).length?"✔":done?"➜":""} RPL: Self-Assessment & pre-test (Institutional Assessment Area)</li>
-      <li class="later">CBT orientation & learning contract with your trainer</li>
+      <li class="${l.contract?"done":Object.keys(records.sag).length?"now":"later"}">${l.contract?"✔":Object.keys(records.sag).length?"➜":""} Learning contract with your trainer</li>
     </ol>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn ${l.tip?"alt":"gold"}" id="goTip">🎒 ${l.tip?"Training Induction Program":"Start the Training Induction Program ▶"}</button>
+      <button class="btn ${l.contract||!l.tip?"alt":"gold"}" id="goContract">✍️ ${l.contract?"My Learning Contract":"Learning Contract"}</button>
+    </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-      <button class="btn ${done?"alt":"gold"}" id="goTest">${done?"Retake Learner-Type Test":"Take the Learner-Type Test ▶"}</button>
+      <button class="btn ${done||!l.tip?"alt":"gold"}" id="goTest">${done?"Retake Learner-Type Test":"Take the Learner-Type Test ▶"}</button>
       ${done&&accessOk()?`<button class="btn" data-goto="iaa">📋 Go to Institutional Assessment</button>`:""}${DEMO?"":`<button class="btn alt" data-certs="1">🎓 My Certificates</button>`}<button class="btn alt" data-rewards="1">🏆 My Rewards</button><button class="btn alt" id="goOut">${DEMO?"Log out":"🔒 Lock & log out"}</button>
     </div>${demoNote()}`);
   drawTrainee(document.getElementById('idCv').getContext('2d'),35,72,1.25,"down",0,av);
   document.getElementById('goTest').onclick=renderTest;
+  document.getElementById('goTip').onclick=renderTIP;document.getElementById('goContract').onclick=renderContract;
   document.getElementById('goOut').onclick=()=>{if(DEMO)logout();else lockSession();renderSSA();};
   wireLockBox();
 }
@@ -968,8 +986,8 @@ function renderRegister(){
     setBody(`<p style="text-align:center;font-size:16px">🎉 <b>Welcome to the campus, ${esc(profile.firstName)}!</b></p>
       <p style="text-align:center">Your Trainee ID is:</p><div class="bigid">${esc(res.id)}</div>
       <p style="text-align:center" class="muted">Write it down or take a screenshot. You need it and your PIN to log in.</p>
-      <div style="text-align:center;margin-top:12px"><button class="btn gold big" id="goTest">Next: Learner-Type Test ▶</button></div>`);
-    document.getElementById('goTest').onclick=renderTest;
+      <div style="text-align:center;margin-top:12px"><button class="btn gold big" id="goTest">Continue ▶</button></div>`);
+    document.getElementById('goTest').onclick=()=>renderSSA();
   };
 }
 
@@ -1051,9 +1069,16 @@ function nextStep(){
   if(!session&&remembered&&!DEMO)return{t:"Enter your PIN to open the campus",a:"ssa",i:"🔑"};
   if(!session)return{t:"Register at the Support Service Area",a:"ssa",i:"🗂️"};
   if(!accessOk())return{t:"Unlock with your trainer's QR code",a:"ssa",i:"🔒"};
-  if(!(session.learner&&session.learner.learnerType))return{t:"Take the Learner-Type Test",a:"ssa",i:"📝"};
+  const L=session.learner||{};
+  if(!L.tip)return{t:"Training Induction Program",a:"ssa",i:"🎒"};
+  if(!L.learnerType)return{t:"Take the Learner-Type Test",a:"ssa",i:"📝"};
   if(!Object.keys(records.sag).length)return{t:"Self-Assessment (RPL)",a:"iaa",i:"📋"};
   if(!Object.keys(records.pretest).length)return{t:"Take a unit pre-test",a:"iaa",i:"📝"};
+  if(!L.contract)return{t:"Sign your learning contract",a:"ssa",i:"✍️"};
+  const na=L.na||{};
+  if(na.status==="Competent")return{t:"NC III holder! Get job-ready",a:"ssa",i:"🏆"};
+  if(na.status&&na.status!=="NYC")return{t:"National Assessment: "+(NA_LBL[na.status]||[na.status])[0],a:"iaa",i:"🏅"};
+  if(prog&&prog.progress&&units.length&&units.every(u=>prog.progress[u.code]&&prog.progress[u.code].s==="C"))return{t:"Request your National Assessment",a:"iaa",i:"🏅"};
   return{t:"Study your training gaps",a:"lrc",i:"📚"};
 }
 // refresh session on load (online mode)
@@ -1292,7 +1317,7 @@ function renderIAA(){
     const cnt={ready:0,partial:0,full:0,none:0};
     list.forEach(u=>{const s=needsOf(u.code).status;if(/^Ready/.test(s))cnt.ready++;else if(/^Partial/.test(s))cnt.partial++;else if(/^Full/.test(s))cnt.full++;else cnt.none++;});
     const cats=["Basic","Common","Core"];
-    setBody(`<p>For each unit of competency: <b>① Self-Assessment</b> (what can you already do?) → <b>② Pre-test</b> (from your CBLM Self-Checks) → <b>③ your training gaps</b>.</p>
+    setBody(`<div id="naBox"></div><p>For each unit of competency: <b>① Self-Assessment</b> (what can you already do?) → <b>② Pre-test</b> (from your CBLM Self-Checks) → <b>③ your training gaps</b>.</p>
      <div class="grid4"><div class="stat"><b>${cnt.ready}</b>Ready for ICE</div><div class="stat"><b>${cnt.partial}</b>Partial</div><div class="stat"><b>${cnt.full}</b>Training needed</div><div class="stat"><b>${cnt.none}</b>Not finished</div></div>
      <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn alt" id="goNeeds">📄 View my Training Needs summary</button><button class="btn alt" data-prog="pc">📈 My Progress Chart</button></div>
      <div class="tabs" id="iaaTabs">${cats.map((c,i)=>`<button class="tab${i===0?" on":""}" data-c="${c}">${c}</button>`).join("")}</div>
@@ -1308,7 +1333,7 @@ function renderIAA(){
     document.getElementById('iaaList').onclick=e=>{const b=e.target.closest('button');if(!b)return;
       if(b.dataset.sag)renderSAG(b.dataset.sag);else if(b.dataset.pre)renderPretest(b.dataset.pre);else if(b.dataset.res)renderUnitResult(b.dataset.res);};
     document.getElementById('goNeeds').onclick=renderNeedsSummary;
-    draw();
+    draw();if(!DEMO)mountNaCard();
   });
 }
 
@@ -1669,14 +1694,157 @@ function openDirectory(){
   setTimeout(()=>document.querySelector('.dir').onclick=e=>{const b=e.target.closest('button');if(!b)return;
     const a=AREAS.find(x=>x.id===b.dataset.id);player.x=a.x+a.w/2;player.y=a.y+a.h+28;player.dir="up";closePanel();});
 }
+/* ================= TRAINING INDUCTION PROGRAM (TIP) · LEARNING CONTRACT · NATIONAL ASSESSMENT ================= */
+const TIP=[
+ {id:"welcome",icon:"👋",t:"Welcome to TESDA and RTC-Cebu",b:`<p>Welcome to the <b>Electrical Installation and Maintenance (EIM) NC III</b> program of the <b>TESDA Regional Training Center – Cebu</b>.</p>
+  <p><b>TESDA</b> (Technical Education and Skills Development Authority) is the government agency that manages and supervises technical-vocational education and training (TVET) in the Philippines. It sets the <b>Training Regulations</b>, registers training programs, and runs the national assessment and certification of skilled workers.</p>
+  <p>This Virtual TVET Campus is your training workshop online. You can study here at your own pace, on your phone or on a computer.</p>`},
+ {id:"program",icon:"⚡",t:"Your qualification: EIM NC III",b:()=>{const c=k=>units.filter(u=>u.category===k).length;
+  return`<p>The program follows the TESDA <b>Training Regulations for EIM NC III</b> and the competency-based curriculum of the center. A person with this qualification may work as an <b>industrial electrician, electrical leadman or electrical foreman</b>.</p>
+  <div class="grid4"><div class="stat"><b>${c("Basic")}</b>Basic units</div><div class="stat"><b>${c("Common")}</b>Common units</div><div class="stat"><b>${c("Core")}</b>Core units</div><div class="stat"><b>${units.length}</b>Units in all</div></div>
+  <p style="margin-top:8px"><b>Basic</b> units are the 2019 updated basic competencies with 21st-century skills. <b>Common</b> units are shared by electrical qualifications. <b>Core</b> units are the main skills of EIM NC III.</p>
+  <p><b>Entry requirement:</b> holder of, or trained in, EIM NC II or Mechatronics Servicing NC II.</p>`;}},
+ {id:"cbt",icon:"🧭",t:"How competency-based training (CBT) works",b:`<ul class="tipl">
+  <li><b>Training is based on industry competency standards.</b> Each unit of competency has learning outcomes you must be able to do on the job.</li>
+  <li><b>You learn at your own pace.</b> Move to the next learning outcome when you are ready, not when the class is.</li>
+  <li><b>Recognition of Prior Learning (RPL).</b> Skills you already have are recognized. Your Self-Assessment and pre-test show your training gaps, so you train only on what you still need.</li>
+  <li><b>Your learning materials are the CBLMs.</b> For each learning outcome: read the Information Sheet → answer the Self-Check → do the Task Sheet or Job Sheet → ask your trainer to check you with the Performance Criteria Checklist.</li>
+  <li><b>Your trainer is your facilitator.</b> Ask for help, demonstrations and feedback anytime.</li>
+  <li><b>Competent or Not Yet Competent.</b> There are no grades. When you can do the skill to the standard, your trainer marks it Competent in your Progress Chart and Trainee's Record Book.</li></ul>`},
+ {id:"rules",icon:"📏",t:"Rules of the training workshop",b:`<ul class="tipl">
+  <li><b>Attendance and punctuality.</b> Come on time, and tell your trainer before you are absent. Scholars must meet the attendance required by their scholarship.</li>
+  <li><b>Safety first.</b> Wear your PPE. Never work on a live circuit. Follow lock-out/tag-out and the trainer's safety instructions at all times.</li>
+  <li><b>Tools and equipment.</b> Borrow and return tools properly. Report damaged tools right away. Keep your workstation clean (5S).</li>
+  <li><b>Conduct.</b> Respect your trainer and co-trainees. No bullying, cheating, alcohol, drugs or gambling in the center.</li>
+  <li><b>Your campus account.</b> Keep your PIN secret. Your records are protected under the Data Privacy Act.</li></ul>
+  <p class="muted" style="font-size:12.5px">Your trainer will also explain the center's own rules and policies on your first day.</p>`},
+ {id:"assess",icon:"📋",t:"Assessment and certification",b:`<ol class="tipl">
+  <li><b>RPL</b> before training: Self-Assessment Guide and pre-test (Institutional Assessment Area).</li>
+  <li><b>Institutional Competency Evaluation (ICE)</b> per unit, by your trainer. You get a <b>Certificate of Achievement</b> for each unit you are Competent in.</li>
+  <li><b>National Assessment for NC III.</b> When all units are Competent, you apply for the national assessment at a TESDA-accredited assessment center. Passing it gives you the <b>National Certificate (NC III)</b>. Graduates of the program are required to take it.</li></ol>`},
+ {id:"support",icon:"🤝",t:"Support services",b:`<ul class="tipl">
+  <li><b>Support Service Area</b> (registrar and help desk): your profile, learning contract, records and certificates.</li>
+  <li><b>Guidance:</b> talk to your trainer or the center's guidance staff if you have problems that affect your training.</li>
+  <li><b>Trainee's Record Book and Progress Chart:</b> check them often in the Quality Control Area, and confirm each competency your trainer records.</li>
+  <li><b>Job placement:</b> near the end of training, the center helps you get ready for work (Job Induction Program, job fairs and PhilJobNet).</li></ul>`}
+];
+function tipBody(x){return typeof x.b==="function"?x.b():x.b;}
+function renderTIP(){
+  const l=(session&&session.learner)||{},doneTip=!!l.tip,seen=store.get("vtvet_tip_"+(session?session.id:"guest"),{});
+  setBody(`<p><b>🎒 Training Induction Program (TIP)</b> · your orientation before training. Open each part, read it, then tick <b>I understand</b>.</p>
+   ${doneTip?`<div class="lockbox green"><h4>✔ TIP completed</h4>Attended on ${esc(fmtDate(l.tip))}. You can read it again anytime.</div>`:""}
+   <div id="tipList">${TIP.map((x,i)=>`<details class="tipS" ${i===0&&!doneTip?"open":""}><summary>${x.icon} ${i+1}. ${esc(x.t)} <span class="tipOk" data-ok="${x.id}">${seen[x.id]||doneTip?"✔":""}</span></summary>
+     <div class="tipB">${tipBody(x)}<label class="tipC"><input type="checkbox" data-tip="${x.id}" ${seen[x.id]||doneTip?"checked":""}> I understand</label></div></details>`).join("")}</div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+     ${doneTip?`<button class="btn gold" id="tipNext">✍️ Go to my Learning Contract ▶</button>`:`<button class="btn gold" id="tipDone" disabled>✔ I have completed the TIP</button>`}
+     <button class="btn alt" id="tipBack">◀ Back</button></div>
+   <div id="tipMsg" class="hidden"></div>`);
+  const all=()=>TIP.every(x=>seen[x.id]);
+  const btn=document.getElementById('tipDone');if(btn)btn.disabled=!all();
+  document.getElementById('tipList').onchange=e=>{const c=e.target.closest('[data-tip]');if(!c)return;
+    seen[c.dataset.tip]=c.checked;store.set("vtvet_tip_"+session.id,seen);
+    const ok=document.querySelector(`[data-ok="${c.dataset.tip}"]`);if(ok)ok.textContent=c.checked?"✔":"";
+    if(c.checked){const d=c.closest('details'),n=d.nextElementSibling;d.open=false;if(n&&n.tagName==="DETAILS")n.open=true;}
+    if(btn)btn.disabled=!all();};
+  document.getElementById('tipBack').onclick=()=>renderSSA();
+  const nx=document.getElementById('tipNext');if(nx)nx.onclick=renderContract;
+  if(btn)btn.onclick=async()=>{btn.disabled=true;btn.textContent="Saving…";
+    const r=await api("completeTIP",{id:session.id,token:session.token});
+    if(!r.ok){btn.disabled=false;btn.textContent="✔ I have completed the TIP";show(document.getElementById('tipMsg'),r.error,"err");return;}
+    session.learner=r.learner;saveSession(session);rwPop("🎒 Training Induction Program completed!");renderTIP();};
+}
+function show(el,t,k){if(!el)return;el.className=k==="ok"?"ok":"err";el.textContent=t;el.classList.remove("hidden");}
+async function renderContract(){
+  const l=(session&&session.learner)||{};
+  setBody(`<p class="muted">Loading your training plan…</p>`);
+  await loadRecords();let P=null;if(accessOk()){try{P=await loadProgress();}catch(e){}}
+  const pr=P&&P.progress?P.progress:{};
+  const st=u=>(pr[u.code]&&pr[u.code].s)||"";
+  const toTrain=units.filter(u=>!["C","R"].includes(st(u))),ready=units.filter(u=>st(u)==="R"),comp=units.filter(u=>st(u)==="C");
+  const nm=fullName(l),signed=!!l.contract;
+  const list=(L,empty)=>L.length?`<ul class="tipl">${L.map(u=>`<li><span class="code">${esc(u.code)}</span> ${esc(u.title)}</li>`).join("")}</ul>`:`<p class="muted">${empty}</p>`;
+  setBody(`<div class="contract">
+    <h3 style="margin-top:0;text-align:center">LEARNING CONTRACT</h3>
+    <p style="text-align:center;margin-top:-6px" class="muted">${esc(CAT.qualification||"Electrical Installation and Maintenance NC III")} · TESDA RTC-Cebu</p>
+    <p>This learning contract is between <b>${esc(nm)}</b> (Trainee ID ${esc(session.id)}), the <b>trainee</b>, and the <b>trainer</b> of this program.</p>
+    <h4>My training plan</h4>
+    ${Object.keys(records.sag).length?"":`<div class="err" style="background:#fff3c4;color:#7a5a00;border-color:#f2d36b">Tip: finish your Self-Assessment and pre-tests first (Institutional Assessment Area), so this plan shows your real training gaps.</div>`}
+    <p><b>Units I will train on (${toTrain.length}):</b></p>${list(toTrain,"None. 🎉")}
+    ${ready.length?`<p><b>Units I am ready to be evaluated on (RPL) (${ready.length}):</b></p>${list(ready,"")}`:""}
+    ${comp.length?`<p><b>Units already Competent (${comp.length}):</b></p>${list(comp,"")}`:""}
+    <h4>As the trainee, I agree to:</h4>
+    <ol class="tipl"><li>Attend my training sessions on time and inform my trainer when I cannot attend.</li>
+     <li>Study each learning outcome in my CBLMs: Information Sheets, Self-Checks, Task Sheets and Job Sheets, at my own pace.</li>
+     <li>Follow all safety rules, wear my PPE, and take good care of the tools, equipment and materials.</li>
+     <li>Ask my trainer for help when I need it, and call my trainer when I am ready to be assessed.</li>
+     <li>Be honest in all my assessments and keep my own work my own.</li>
+     <li>Check my Progress Chart and confirm each competency in my Trainee's Record Book.</li>
+     <li>Take the Institutional Competency Evaluation for each unit, and the National Assessment for NC III when I finish all units.</li></ol>
+    <h4>The trainer agrees to:</h4>
+    <ol class="tipl"><li>Give the trainee the learning materials, tools and equipment needed for training.</li>
+     <li>Guide, demonstrate and give feedback on the trainee's progress.</li>
+     <li>Assess the trainee fairly using the competency standards, and record the results promptly.</li>
+     <li>Keep the trainee's records private and safe.</li></ol>
+    ${signed?`<div class="lockbox green"><h4>✔ Signed</h4>Signed online by <b>${esc(nm)}</b> on ${esc(fmtDate(l.contract))}.</div>`:`
+    <div class="ctform"><label>Type your full name to sign</label><input id="ctName" placeholder="${esc(nm)}" autocomplete="off">
+    <label style="display:flex;gap:8px;align-items:flex-start;margin-top:8px;font-weight:600"><input type="checkbox" id="ctAgree" style="width:auto;margin-top:3px"> I have read this learning contract and I agree to it.</label></div>`}
+    <div class="sig2"><div>Trainee<br><b>${esc(nm)}</b></div><div>Trainer<br>&nbsp;</div></div></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+     ${signed?`<button class="btn" id="ctPrint">🖨️ Print for signatures</button>`:`<button class="btn gold" id="ctSign">✍️ Sign my learning contract</button>`}
+     <button class="btn alt" id="ctBack">◀ Back</button></div><div id="ctMsg" class="hidden"></div>`);
+  document.getElementById('ctBack').onclick=()=>renderSSA();
+  const pb=document.getElementById('ctPrint');
+  if(pb)pb.onclick=()=>{const w=window.open("","_blank");if(!w)return;
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Learning Contract · ${esc(session.id)}</title><style>body{font-family:Arial,sans-serif;font-size:13px;line-height:1.5;margin:28px;color:#000}h3{text-align:center}h4{margin:14px 0 4px}.code{font-family:monospace}.lockbox{border:1px solid #888;padding:6px 10px;margin-top:10px}.sig2{display:flex;gap:40px;margin-top:50px}.sig2 div{flex:1;border-top:1px solid #000;text-align:center;padding-top:4px}.muted{color:#555}.cr{margin-top:30px;font-size:10px;color:#666}</style></head><body>${document.querySelector('.contract').innerHTML}<div class="cr">Virtual TVET Campus · Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu</div><script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script></body></html>`);w.document.close();};
+  const sb=document.getElementById('ctSign');
+  if(sb)sb.onclick=async()=>{const n=document.getElementById('ctName').value.trim(),a=document.getElementById('ctAgree').checked;
+    if(!a){show(document.getElementById('ctMsg'),"Tick the box to agree to the learning contract.","err");return;}
+    if(!n){show(document.getElementById('ctMsg'),"Type your full name to sign.","err");return;}
+    sb.disabled=true;sb.textContent="Signing…";
+    const r=await api("signContract",{id:session.id,token:session.token,name:n,agree:true});
+    if(!r.ok){sb.disabled=false;sb.textContent="✍️ Sign my learning contract";show(document.getElementById('ctMsg'),r.error,"err");return;}
+    session.learner=r.learner;saveSession(session);rwPop("✍️ Learning contract signed!");renderContract();};
+}
+/* ----- National Assessment (NC III) card, shown in the Institutional Assessment Area ----- */
+const NA_LBL={Requested:["Requested","#7a5a00","#fff3c4"],Applied:["Application filed","#1f5fbf","#e3edfb"],Scheduled:["Scheduled","#1f5fbf","#e3edfb"],Competent:["Competent · NC III","#1d6b3d","#d9f2e2"],NYC:["Not Yet Competent","#8a0f22","#fde8ea"]};
+function naCardHtml(allC,nLeft){
+  const na=((session&&session.learner)||{}).na||{},s=na.status||"";
+  const chip=s?`<span class="soon" style="background:${NA_LBL[s][2]};color:${NA_LBL[s][1]};border-color:transparent">${NA_LBL[s][0]}</span>`:"";
+  const steps=["Requested","Applied","Scheduled","Result"],at=s==="Competent"||s==="NYC"?3:Math.max(0,steps.indexOf(s));
+  let body;
+  if(!s&&!allC)body=`<p>When <strong>all ${units.length} units</strong> are marked Competent, you can request your National Assessment here. <strong>${nLeft}</strong> unit${nLeft===1?"":"s"} to go.</p>`;
+  else if(!s||s==="NYC")body=`${s==="NYC"?`<p>Result: <strong>Not Yet Competent</strong>${na.date?" ("+esc(fmtDate(na.date))+")":""}. Train again on the parts your assessor pointed out, then request a reassessment.</p>`:`<p>🎉 All units are Competent. You are ready for the <strong>National Assessment for NC III</strong>.</p>`}
+    <button class="btn gold" id="naReq">🏅 ${s==="NYC"?"Request reassessment":"Request my National Assessment"}</button>`;
+  else body=`<div class="nasteps">${steps.map((x,i)=>`<span class="${i<=at?"on":""}">${i<=at?"✔":"○"} ${x}</span>`).join("")}</div>
+    ${na.date?`<p>Assessment date: <strong>${esc(fmtDate(na.date))}</strong>${na.center?` · ${esc(na.center)}`:""}</p>`:na.center?`<p>Assessment center: <strong>${esc(na.center)}</strong></p>`:""}
+    ${s==="Competent"?`<p>🏆 Congratulations! National Certificate No. <strong>${esc(na.nc)}</strong>.</p>`:`<p>Your trainer will help you file the application and tell you the documents to bring.</p>`}
+    ${na.note?`<p class="muted">Note: ${esc(na.note)}</p>`:""}`;
+  return`<div class="tile nacard"><b>🏅 National Assessment (NC III) ${chip}</b>
+    <p class="muted" style="font-size:12.5px;margin:2px 0 6px">Done at a TESDA-accredited assessment center. Passing it gives you the National Certificate (NC III).</p>${body}<div id="naMsg" class="hidden"></div></div>`;
+}
+async function mountNaCard(){
+  const box=document.getElementById('naBox');if(!box||!session)return;
+  let P=null;if(accessOk()){try{P=await loadProgress();}catch(e){}}
+  const pr=P&&P.progress?P.progress:{},left=units.filter(u=>!(pr[u.code]&&pr[u.code].s==="C")).length;
+  if(!document.getElementById('naBox'))return;
+  box.innerHTML=naCardHtml(units.length>0&&left===0,left);
+  const b=document.getElementById('naReq');
+  if(b)b.onclick=async()=>{b.disabled=true;b.textContent="Sending…";
+    const r=await api("requestNA",{id:session.id,token:session.token});
+    if(!r.ok){b.disabled=false;b.textContent="🏅 Request my National Assessment";show(document.getElementById('naMsg'),r.error,"err");return;}
+    session.learner=r.learner;saveSession(session);rwPop("🏅 National Assessment requested. Your trainer will contact you.");mountNaCard();};
+}
+
 /* ================= RPG REWARDS: XP, levels & badges =================
    Worked out on this device from the learner's own records (Self-Assessment, pre-test, Progress Chart,
    TRB confirmations) plus the campus areas visited. Nothing extra is stored in the Google Sheet. */
-const XP_RULES={reg:50,type:50,area:10,sag:20,pre:30,loRPL:15,loC:25,unitC:100,ack:10};
+const XP_RULES={reg:50,tip:50,contract:30,naReq:50,nc:300,type:50,area:10,sag:20,pre:30,loRPL:15,loC:25,unitC:100,ack:10};
 const LEVELS=[[0,"Apprentice"],[200,"Electrical Helper"],[600,"Junior Electrician"],[1300,"Electrician"],[2300,"Senior Electrician"],[3500,"Master Electrician"]];
 const BADGES=[
  ["enrolled","🪪","Enrolled","Register at the Support Service Area"],
+ ["tip","🎒","Inducted","Complete the Training Induction Program"],
  ["type","🧠","Know Yourself","Finish the learner-type test"],
+ ["contract","✍️","Committed","Sign your learning contract"],
  ["explorer","🧭","Campus Explorer","Visit all 9 areas of the campus"],
  ["sag","📝","Self-Assessor","Finish a Self-Assessment Guide"],
  ["pre","🎯","Pre-test Taker","Finish a pre-test"],
@@ -1687,7 +1855,8 @@ const BADGES=[
  ["common","🤝","Common Complete","Competent in all Common units"],
  ["core","⚡","Core Complete","Competent in all Core units"],
  ["collector","🎓","Certificate Collector","Earn 5 Certificates of Achievement"],
- ["qualified","🏆","Fully Qualified","Competent in every unit of the qualification"]
+ ["qualified","🏆","Fully Qualified","Competent in every unit of the qualification"],
+ ["nc3","🥇","NC III Holder","Pass the National Assessment for NC III"]
 ];
 const rwKey=()=>"vtvet_rw_"+(session?session.id:remembered?remembered.id:"guest");
 function rwGet(){return store.get(rwKey(),{areas:[],xp:0,level:0,badges:[]});}
@@ -1698,8 +1867,12 @@ function computeRewards(rw,P){
   const items=[],add=(k,n,t)=>{if(n>0)items.push({k,n,t});};
   const reg=!!(session||(remembered&&!DEMO));
   if(reg)add("reg",XP_RULES.reg,"Registered");
-  const lt=session&&session.learner&&session.learner.learnerType;
+  const SL=(session&&session.learner)||{},lt=SL.learnerType,na=SL.na||{};
+  if(SL.tip)add("tip",XP_RULES.tip,"Training Induction Program");
   if(lt)add("type",XP_RULES.type,"Learner-type test");
+  if(SL.contract)add("contract",XP_RULES.contract,"Learning contract signed");
+  if(na.status)add("naReq",XP_RULES.naReq,"National Assessment requested");
+  if(na.status==="Competent")add("nc",XP_RULES.nc,"National Certificate (NC III)");
   add("area",XP_RULES.area*rw.areas.length,`Areas visited (${rw.areas.length}/9)`);
   let sag=0,pre=0,rpl=0,loC=0,uC=0,ack=0;const cats={Basic:[0,0],Common:[0,0],Core:[0,0]};
   units.forEach(u=>{if(cats[u.category])cats[u.category][1]++;});
@@ -1717,7 +1890,7 @@ function computeRewards(rw,P){
   const xp=items.reduce((s,i)=>s+i.n,0);
   const full=c=>cats[c][1]>0&&cats[c][0]===cats[c][1];
   const got={enrolled:reg,type:!!lt,explorer:rw.areas.length>=AREAS.length,sag:sag>0,pre:pre>0,rpl:rpl>0,first:uC>0,ack:ack>0,
-    basic:full("Basic"),common:full("Common"),core:full("Core"),collector:uC>=5,qualified:units.length>0&&uC>=units.length};
+    basic:full("Basic"),common:full("Common"),core:full("Core"),collector:uC>=5,qualified:units.length>0&&uC>=units.length,tip:!!SL.tip,contract:!!SL.contract,nc3:na.status==="Competent"};
   return{xp,items,badges:BADGES.filter(b=>got[b[0]]).map(b=>b[0])};
 }
 let rwBusy=false;
@@ -1766,9 +1939,10 @@ async function openRewards(){
    <h3>Where your XP comes from</h3>
    <table class="rwT">${(rw.items||[]).map(i=>`<tr><td>${esc(i.t)}</td><td>+${i.n}</td></tr>`).join("")||`<tr><td colspan="2" class="muted">No XP yet. Start by registering at the Support Service Area.</td></tr>`}</table>
    <h3>How to earn XP</h3>
-   <p style="font-size:13px;line-height:1.6">🪪 Register +${XP_RULES.reg} · 🧠 Learner-type test +${XP_RULES.type} · 🧭 Each campus area +${XP_RULES.area}<br>
+   <p style="font-size:13px;line-height:1.6">🪪 Register +${XP_RULES.reg} · 🎒 TIP +${XP_RULES.tip} · ✍️ Learning contract +${XP_RULES.contract} · 🧠 Learner-type test +${XP_RULES.type} · 🧭 Each campus area +${XP_RULES.area}<br>
    📝 Self-Assessment +${XP_RULES.sag} and 🎯 pre-test +${XP_RULES.pre} per unit · ♻️ Outcome met through RPL +${XP_RULES.loRPL}<br>
-   ✅ Learning outcome Competent +${XP_RULES.loC} · 🎓 Unit Competent +${XP_RULES.unitC} · 📒 TRB confirmation +${XP_RULES.ack}</p>
+   ✅ Learning outcome Competent +${XP_RULES.loC} · 🎓 Unit Competent +${XP_RULES.unitC} · 📒 TRB confirmation +${XP_RULES.ack}<br>
+   🏅 National Assessment requested +${XP_RULES.naReq} · 🥇 National Certificate (NC III) +${XP_RULES.nc}</p>
    <h3>Levels</h3><p style="font-size:13px">${LEVELS.map((l,i)=>`${i===lv?"<b>":""}Lv ${i+1} ${esc(l[1])} (${l[0]} XP)${i===lv?"</b>":""}`).join(" · ")}</p>`;
 }
 document.getElementById('pBody').addEventListener('click',e=>{if(e.target.closest('[data-rewards]'))openRewards();});
