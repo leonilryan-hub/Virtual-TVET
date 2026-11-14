@@ -65,6 +65,7 @@
   .as.on.as-P{background:#1d6b3d;border-color:#1d6b3d;color:#fff}.as.on.as-L{background:#d97706;border-color:#d97706;color:#fff}.as.on.as-A{background:#b91c1c;border-color:#b91c1c;color:#fff}.as.on.as-E{background:#2563eb;border-color:#2563eb;color:#fff}
   .anote{flex:0 1 170px;padding:7px 10px}
   .sumt{width:100%;border-collapse:collapse;font-size:13.5px}.sumt th,.sumt td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:center}.sumt td:first-child,.sumt th:first-child{text-align:left}
+  .fbt td:first-child{max-width:380px}.fbg{background:#f1f4f9;font-weight:800;color:var(--navy);text-align:left!important}.fbbar{height:5px;background:#eef0f4;border-radius:3px;overflow:hidden;margin-top:3px}.fbbar i{display:block;height:100%}
   .doc{display:flex;gap:10px;align-items:center;justify-content:space-between;border:2px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;background:#fff}.doc a{color:var(--navy)}
   .nabox{margin-top:12px;border:2px solid #f2d36b;background:#fffaf0;border-radius:10px;padding:10px}.nabox .row{margin-top:6px}.nabox .row input,.nabox .row select{max-width:none;width:100%}.nabox .row>div{flex:1;min-width:140px}
   .counts{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
@@ -124,6 +125,7 @@
       <button class="tab" data-t="prg">📈 Progress Chart</button>
       <button class="tab" data-t="att">🗓️ Attendance</button>
       <button class="tab" data-t="doc">📁 Documents</button>
+      <button class="tab" data-t="fbk">⭐ Feedback</button>
     </div>
 
     <!-- QR -->
@@ -213,6 +215,19 @@
       <div id="dList" style="margin-top:12px"><p class="muted">Loading…</p></div>
     </div>
 
+    <!-- FEEDBACK -->
+    <div class="card hidden" id="t-fbk">
+      <h2>Training feedback</h2>
+      <p class="muted">Trainees rate the training in the campus Quality Control Area (1 = Strongly disagree … 5 = Strongly agree). Results are <b>anonymous</b>: you see averages and comments, not names. Leave the dates empty to see everything.</p>
+      <div class="row">
+        <div style="flex:0;min-width:170px"><label>From</label><input type="date" id="fFrom"></div>
+        <div style="flex:0;min-width:170px"><label>To</label><input type="date" id="fTo"></div>
+        <div style="flex:0"><button class="btn alt" id="fGo">📊 Show</button></div>
+        <div style="flex:0"><button class="btn alt" id="fCsv">⬇️ Download (CSV)</button></div>
+      </div>
+      <div id="fOut" style="margin-top:10px"><p class="muted">Loading…</p></div>
+    </div>
+
     <!-- PROGRESS CHART (Phase 4) -->
     <div class="card hidden" id="t-prg">
       <h2>Progress Chart · Achievement Chart</h2>
@@ -291,7 +306,7 @@ function start(){
 document.querySelector('.tabs').onclick=e=>{const b=e.target.closest('.tab');if(b)setTab(b.dataset.t);};
 function setTab(t){
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
-  ["qr","nfc","lrn","prg","att","doc"].forEach(k=>$('t-'+k).classList.toggle('hidden',k!==t));
+  ["qr","nfc","lrn","prg","att","doc","fbk"].forEach(k=>$('t-'+k).classList.toggle('hidden',k!==t));
   document.body.classList.toggle('wide',t==="prg");
   if(t==="prg")loadProgress();
   if(t==="qr")startQR();else stopQR();
@@ -299,7 +314,27 @@ function setTab(t){
   if(t==="lrn")loadLearners();
   if(t==="att")loadAttendance();
   if(t==="doc")loadDocs();
+  if(t==="fbk")loadFeedback();
 }
+
+/* ---------- training feedback ---------- */
+let FBK=null;
+async function loadFeedback(){
+  $('fOut').innerHTML='<p class="muted">Loading…</p>';
+  const r=await tapi("trainerFeedback",{from:$('fFrom').value,to:$('fTo').value});
+  if(!r.ok){$('fOut').innerHTML=`<div class="err">${esc(r.error)}</div>`;return;}FBK=r;
+  if(!r.n){$('fOut').innerHTML='<p class="muted">No feedback yet for these dates.</p>';return;}
+  const col=a=>a===null?"#888":a>=4?"#1d6b3d":a>=3?"#b45309":"#8a0b1f";let g="";
+  $('fOut').innerHTML=`<p><b>${r.n}</b> trainee${r.n===1?"":"s"} answered · overall average <b style="color:${col(r.overall)}">${r.overall.toFixed(2)} / 5</b></p>
+   <div style="overflow-x:auto"><table class="sumt fbt"><tr><th>Statement</th><th>Average</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>${r.items.map((it,i)=>{const h=it.group!==g?`<tr><td colspan="7" class="fbg">${esc(it.group)}</td></tr>`:"";g=it.group;
+     return h+`<tr><td>${i+1}. ${esc(it.text)}</td><td><b style="color:${col(it.avg)}">${it.avg.toFixed(2)}</b><div class="fbbar"><i style="width:${it.avg/5*100}%;background:${col(it.avg)}"></i></div></td>${it.dist.map(x=>`<td>${x}</td>`).join("")}</tr>`;}).join("")}</table></div>
+   <h3>Comments (${r.comments.length})</h3>${r.comments.length?r.comments.map(c=>`<div class="doc" style="display:block"><span class="muted">${esc(c.date)}</span>${c.liked?`<p style="margin:4px 0">👍 ${esc(c.liked)}</p>`:""}${c.improve?`<p style="margin:4px 0">🔧 ${esc(c.improve)}</p>`:""}</div>`).join(""):'<p class="muted">No written comments yet.</p>'}`;
+}
+$('fGo').onclick=loadFeedback;
+$('fCsv').onclick=async()=>{if(!FBK)await loadFeedback();if(!FBK||!FBK.n)return;
+  const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const rows=[["Group","Statement","Average","1","2","3","4","5"]].concat(FBK.items.map(it=>[it.group,it.text,it.avg].concat(it.dist))).concat([[],["Comments: date","Liked","Improve"]]).concat(FBK.comments.map(c=>[c.date,c.liked,c.improve]));
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(["\ufeff"+rows.map(r=>r.map(q).join(",")).join("\r\n")],{type:"text/csv"}));a.download=`Training feedback (${FBK.n} trainees).csv`;a.click();};
 
 /* ---------- attendance ---------- */
 const today=()=>new Date().toLocaleDateString("en-CA");
