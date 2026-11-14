@@ -228,7 +228,7 @@
         <button class="btn gold big" id="startBtn">Enter Campus ▶</button>
       </div>
     </div>
-    <div class="credit">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu · Phase 2b · Access Lock</div>
+    <div class="credit">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu · Version 1.0</div>
   </div>
 </div>
 
@@ -662,14 +662,17 @@ let pending=sstore.get("vtvet_pending");
   if(pending&&Date.now()-pending.at>10*60000){pending=null;sstore.del("vtvet_pending");} // QR codes are short-lived
 })();
 
-async function api(action,payload){
+async function api(action,payload,retry){
   if(DEMO) return demoApi(action,payload||{});
   try{
     const r=await fetch(CFG.apiUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({action,deviceId:DEVICE},payload))});
     const j=await r.json();
     if(j&&j.locked&&j.access)setAccess(j.access);
+    if(j&&j.busy&&!retry){await new Promise(r=>setTimeout(r,1500+Math.random()*2000));return api(action,payload,true);}
     return j;
-  }catch(e){return{ok:false,error:"Cannot reach the records server. Check your internet connection and try again."};}
+  }catch(e){
+    if(!retry){await new Promise(r=>setTimeout(r,1500));return api(action,payload,true);}
+    return{ok:false,error:"Cannot reach the records server. Check your internet connection and try again."};}
 }
 
 async function activateNow(p){
@@ -876,11 +879,11 @@ function renderSSA(note){
       ${DEMO?"":`<li class="${accessOk()?"done":"now"}">${accessOk()?"✔":"➜"} Unlock the campus with your trainer's QR code / NFC tag</li>`}
       <li class="${done?"done":"now"}">${done?"✔":"➜"} Learner-Type Test (trainee characteristics)</li>
       <li class="${!done?"later":Object.keys(records.sag).length?"done":"now"}">${Object.keys(records.sag).length?"✔":done?"➜":""} RPL: Self-Assessment & pre-test (Institutional Assessment Area)</li>
-      <li class="later">CBT orientation & learning contract ${soon("Phase 2b")}</li>
+      <li class="later">CBT orientation & learning contract with your trainer</li>
     </ol>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
       <button class="btn ${done?"alt":"gold"}" id="goTest">${done?"Retake Learner-Type Test":"Take the Learner-Type Test ▶"}</button>
-      ${done&&accessOk()?`<button class="btn" data-goto="iaa">📋 Go to Institutional Assessment</button>`:""}<button class="btn alt" id="goOut">${DEMO?"Log out":"🔒 Lock & log out"}</button>
+      ${done&&accessOk()?`<button class="btn" data-goto="iaa">📋 Go to Institutional Assessment</button>`:""}${DEMO?"":`<button class="btn alt" data-certs="1">🎓 My Certificates</button>`}<button class="btn alt" id="goOut">${DEMO?"Log out":"🔒 Lock & log out"}</button>
     </div>${demoNote()}`);
   drawTrainee(document.getElementById('idCv').getContext('2d'),35,72,1.25,"down",0,av);
   document.getElementById('goTest').onclick=renderTest;
@@ -1578,23 +1581,32 @@ const AREA_CONTENT={
    <h3>⚡ Ohm's Law calculator</h3><p class="muted" style="font-size:13px">Fill in any two values; the third is computed.</p>
    <div class="ohm"><div><label>Voltage V (volts)</label><input id="oV" inputmode="decimal"></div><div><label>Current I (amperes)</label><input id="oI" inputmode="decimal"></div><div><label>Resistance R (ohms)</label><input id="oR" inputmode="decimal"></div></div>
    <div style="margin-top:8px;display:flex;gap:8px;align-items:center"><button class="btn" id="oGo">Compute</button><button class="btn alt" id="oClr">Clear</button><span id="oOut" style="font-weight:700;color:#0b2a5b"></span></div>
-   <h3>More mini-games ${soon("Phase 3")}</h3><ul class="plan"><li>Power & energy (P = VI)</li><li>Voltage drop & wire sizing</li><li>Three-phase calculations</li></ul>`;
+   <h3>💡 Power & energy (single-phase)</h3><p class="muted" style="font-size:13px">P = V × I × PF · Energy = P × hours</p>
+   <div class="ohm"><div><label>Voltage V (volts)</label><input id="pV" inputmode="decimal" value="230"></div><div><label>Current I (amperes)</label><input id="pI" inputmode="decimal"></div><div><label>Power factor PF (0–1)</label><input id="pPF" inputmode="decimal" value="1"></div><div><label>Hours of use</label><input id="pH" inputmode="decimal" value="1"></div></div>
+   <div style="margin-top:8px"><button class="btn" id="pGo">Compute</button> <span id="pOut" style="font-weight:700;color:#0b2a5b"></span></div>
+   <h3>🔺 Three-phase power</h3><p class="muted" style="font-size:13px">P = √3 × V<sub>L</sub> × I<sub>L</sub> × PF</p>
+   <div class="ohm"><div><label>Line voltage V<sub>L</sub> (volts)</label><input id="tV" inputmode="decimal" value="400"></div><div><label>Line current I<sub>L</sub> (amperes)</label><input id="tI" inputmode="decimal"></div><div><label>Power factor PF (0–1)</label><input id="tPF" inputmode="decimal" value="0.85"></div></div>
+   <div style="margin-top:8px"><button class="btn" id="tGo">Compute</button> <span id="tOut" style="font-weight:700;color:#0b2a5b"></span></div>
+   <h3>📏 Voltage drop (single-phase, 2-wire)</h3><p class="muted" style="font-size:13px">VD = 2 × I × R × L ÷ 1000 · R = conductor resistance in Ω/km (from the wire table), L = one-way length in metres</p>
+   <div class="ohm"><div><label>Supply voltage (volts)</label><input id="dV" inputmode="decimal" value="230"></div><div><label>Load current I (amperes)</label><input id="dI" inputmode="decimal"></div><div><label>Resistance R (Ω/km)</label><input id="dR" inputmode="decimal"></div><div><label>One-way length L (m)</label><input id="dL" inputmode="decimal"></div></div>
+   <div style="margin-top:8px"><button class="btn" id="dGo">Compute</button> <span id="dOut" style="font-weight:700;color:#0b2a5b"></span></div>
+   <p class="muted" style="font-size:12px">Good practice: keep branch-circuit voltage drop at 3% or less (5% for feeder + branch together). Always confirm with the Philippine Electrical Code and your trainer.</p>`;
  },
  cpl(){
    return `<p>Build your IT skills and do online research for your modules.</p>
    <div class="grid2"><div class="tile"><b>TESDA Online Program</b>Free online courses from TESDA.<div style="margin-top:8px"><a class="btn alt" href="https://e-tesda.gov.ph" target="_blank" rel="noopener">Open ↗</a></div></div>
-   <div class="tile"><b>Research corner</b>Video lessons and reference links per unit. ${soon("Phase 3")}</div></div>`;
+   <div class="tile"><b>Research corner</b>Open each unit's CBLM in the Learning Resource Center, then search the TESDA Online Program for related free courses.<div style="margin-top:8px"><button class="btn alt" data-goto="lrc">📚 Learning Resource Center</button></div></div></div>`;
  },
  dla(){
-   return `<p>Learn anywhere: once this campus is online, you can open it on your phone or PC and download modules for offline study. ${soon("Phase 2")}</p>
+   return `<p>Learn anywhere: open this campus on your phone or PC and download your modules for offline study. <b>Tip:</b> in Chrome tap ⋮ → <b>Add to Home screen</b> so the campus opens like an app.</p>
    <h3>All CBLMs in one place</h3><div class="mods">${units.map(u=>modCard(u)).join("")}</div>
    ${LMSLIST.length?`<h3>🧪 Simulators</h3>${LMSLIST.map(simCard).join("")}`:""}`;
  },
  tra(){
    return `<p>🔒 <b>Trainers only.</b> Show the activation QR code, manage the NFC tag, and extend, lock or revoke learners' access.</p>
    <div style="margin:10px 0 4px"><a class="btn gold big" href="trainer.html" target="_blank" rel="noopener">🔐 Open the Trainer Page</a></div>
-   <h3>Coming next</h3>
-   <ul class="plan"><li>Trainee list & registration records</li><li>RPL results and training gaps</li><li>✅ Progress & Achievement Charts are now on the Trainer Page</li><li>Training Activity Matrix</li><li>Upload / update CBLMs and simulators</li></ul>`;
+   <h3>On the Trainer Page</h3>
+   <ul class="plan"><li>📲 Activation QR code and NFC tag</li><li>👥 Learners: extend, lock, revoke, reset PIN or device</li><li>📈 Progress Chart and Achievement Chart: mark LOs and units Competent</li><li>📘 Print each learner's Trainee's Record Book</li><li>🎓 Certificates of Achievement: open, revoke, restore</li></ul>`;
  },
  qca(){
    return `<p>Your <b>Progress Chart</b> and <b>Achievement Chart</b> are posted here. They update by themselves from your Self-Assessment and pre-test, and when your trainer confirms your competencies.</p>
@@ -1617,6 +1629,16 @@ function openArea(a){
       else if(i!==null&&r!==null&&v===null){V.value=fmt(i*r);O.textContent="V = I × R";}
       else O.textContent="Enter exactly two values.";};
     document.getElementById('oClr').onclick=()=>{V.value=I.value=R.value="";O.textContent="";};
+    const g=id=>n(document.getElementById(id)),put=(id,t)=>document.getElementById(id).innerHTML=t;
+    document.getElementById('pGo').onclick=()=>{const v=g('pV'),i=g('pI'),pf=g('pPF'),h=g('pH');
+      if(v===null||i===null||pf===null)return put('pOut',"Enter V, I and PF.");
+      const P=v*i*pf;put('pOut',`P = ${fmt(P)} W (${fmt(P/1000)} kW) · S = ${fmt(v*i)} VA`+(h!==null?` · Energy = ${fmt(P*h/1000)} kWh`:""));};
+    document.getElementById('tGo').onclick=()=>{const v=g('tV'),i=g('tI'),pf=g('tPF');
+      if(v===null||i===null||pf===null)return put('tOut',"Enter V<sub>L</sub>, I<sub>L</sub> and PF.");
+      const S=Math.sqrt(3)*v*i;put('tOut',`P = ${fmt(S*pf/1000)} kW · S = ${fmt(S/1000)} kVA · Q = ${fmt(S*Math.sqrt(Math.max(0,1-pf*pf))/1000)} kVAR`);};
+    document.getElementById('dGo').onclick=()=>{const v=g('dV'),i=g('dI'),r=g('dR'),l=g('dL');
+      if([v,i,r,l].some(x=>x===null))return put('dOut',"Enter all four values.");
+      const vd=2*i*r*l/1000,pc=vd/v*100;put('dOut',`VD = ${fmt(vd)} V (${fmt(pc)}%) · ${pc<=3?"✔ within 3%":"⚠ above 3%: use a bigger wire or shorter run"}`);};
   });
 }
 function openDirectory(){
