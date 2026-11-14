@@ -203,10 +203,12 @@ function campusUrl(){
   if(u&&!u.endsWith("/")&&!/\.html?$/.test(u))u+="/";
   return u;
 }
-async function api(action,p){
+async function api(action,p,retry){
   if(!CFG.apiUrl)return{ok:false,error:"The Google Sheets link is missing in config.js. The Trainer page only works online."};
-  try{const r=await fetch(CFG.apiUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({action},p))});return await r.json();}
-  catch(e){return{ok:false,error:"Cannot reach the records server. Check your internet connection."};}
+  try{const r=await fetch(CFG.apiUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({action},p))});const j=await r.json();
+    if(j&&j.busy&&!retry){await new Promise(x=>setTimeout(x,1500+Math.random()*2000));return api(action,p,true);}
+    return j;}
+  catch(e){if(!retry){await new Promise(x=>setTimeout(x,1500));return api(action,p,true);}return{ok:false,error:"Cannot reach the records server. Check your internet connection."};}
 }
 async function tapi(action,p){
   const r=await api(action,Object.assign({tid:T.tid,ttoken:T.ttoken},p||{}));
