@@ -80,6 +80,7 @@
         ${L.tip ? `<tr><td>Training Induction Program</td><td>Attended ${esc(longD(L.tip))}</td></tr>` : ""}
         ${L.contract ? `<tr><td>Learning contract</td><td>Signed ${esc(longD(L.contract))}</td></tr>` : ""}
         ${L.jip ? `<tr><td>Job Induction Program</td><td>Completed ${esc(longD(L.jip))}</td></tr>` : ""}
+        ${L.att && L.att.days ? `<tr><td>Attendance</td><td>${L.att.P} present · ${L.att.L} late · ${L.att.A} absent · ${L.att.E} excused${L.att.rate !== null ? ` (${L.att.rate}% attendance)` : ""}</td></tr>` : ""}
       </table>
       <div class="muted">Virtual TVET Campus · printed ${esc(longD(d.today))}</div>
       <div class="credit">${esc(CREDIT)}</div></div>`;
