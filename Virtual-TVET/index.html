@@ -264,7 +264,7 @@
         <button class="btn gold big" id="startBtn">Enter Campus ▶</button>
       </div>
     </div>
-    <div class="credit">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu · Version 1.5</div>
+    <div class="credit">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu · Version 1.6</div>
   </div>
 </div>
 
@@ -1661,12 +1661,13 @@ const AREA_CONTENT={
    return `<p>🔒 <b>Trainers only.</b> Show the activation QR code, manage the NFC tag, and extend, lock or revoke learners' access.</p>
    <div style="margin:10px 0 4px"><a class="btn gold big" href="trainer.html" target="_blank" rel="noopener">🔐 Open the Trainer Page</a></div>
    <h3>On the Trainer Page</h3>
-   <ul class="plan"><li>📲 Activation QR code and NFC tag</li><li>👥 Learners: extend, lock, revoke, reset PIN or device</li><li>📈 Progress Chart and Achievement Chart: mark LOs and units Competent</li><li>📘 Print each learner's Trainee's Record Book</li><li>🎓 Certificates of Achievement: open, revoke, restore</li><li>🎒 TIP, learning contract, National Assessment and JIP status</li><li>🗓️ Daily attendance and attendance summary</li><li>📁 Training Plan, Training Activity Matrix and Session Plans</li></ul>
+   <ul class="plan"><li>📲 Activation QR code and NFC tag</li><li>👥 Learners: extend, lock, revoke, reset PIN or device</li><li>📈 Progress Chart and Achievement Chart: mark LOs and units Competent</li><li>📘 Print each learner's Trainee's Record Book</li><li>🎓 Certificates of Achievement: open, revoke, restore</li><li>🎒 TIP, learning contract, National Assessment and JIP status</li><li>🗓️ Daily attendance and attendance summary</li><li>📁 Training Plan, Training Activity Matrix and Session Plans</li><li>⭐ Training feedback (anonymous)</li><li>🧰 Tools and equipment inventory, maintenance and 5S records</li></ul>
    <h3>📁 Training documents for trainees</h3><p class="muted" style="font-size:13px">Your Training Plan, Training Activity Matrix and other documents your trainer shares with you.</p><div id="docBox"></div>`;
  },
  qca(){
    return `<p>Your <b>Progress Chart</b> and <b>Achievement Chart</b> are posted here. They update by themselves from your Self-Assessment and pre-test, and when your trainer confirms your competencies.</p>
    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px"><button class="btn gold" data-prog="pc">📈 My Progress Chart</button><button class="btn alt" data-prog="ac">🏅 My Achievement Chart</button><button class="btn alt" data-trb="1">📘 My Record Book (TRB)</button><button class="btn alt" data-certs="1">🎓 My Certificates</button><button class="btn alt" data-fb="1">⭐ Rate your training</button></div>
+   <h3>🧰 Workshop tools and 5S</h3><div id="facBox"></div>
    <h3>Pilot-testing of materials</h3><p class="muted" style="font-size:13px">New and revised materials are pilot-tested here before trainees use them.</p>
    <h3>Module status</h3><div class="mods">${units.map(u=>`<div class="mod cat-${u.category}"><div><span class="code">${esc(u.code)}</span><div class="ttl">${esc(u.title)}</div></div><div class="go"><span class="soon" style="background:#e6f6ec;color:#1d6b3d;border-color:#9fd8b2">Rev 00</span></div></div>`).join("")}</div>`;
  }
@@ -1676,6 +1677,7 @@ function openArea(a){
   if(a.id!=="ssa"&&a.id!=="tra"&&!accessOk()){openPanel(a.roof,a.icon,a.name,a.sub,"");renderLocked(a);return;}
   openPanel(a.roof,a.icon,a.name,a.sub,AREA_CONTENT[a.id]());
   if(a.id==="tra")mountDocs();
+  if(a.id==="qca")mountFacility();
   if(a.id==="cll")setTimeout(()=>{
     const V=document.getElementById('oV'),I=document.getElementById('oI'),R=document.getElementById('oR'),O=document.getElementById('oOut');
     const n=v=>v.value.trim()===""?null:parseFloat(v.value);
@@ -2021,6 +2023,21 @@ async function renderFeedback(){
     rwPop("⭐ Thank you for your feedback!");renderFeedback();};
 }
 document.getElementById('pBody').addEventListener('click',e=>{if(e.target.closest('[data-fb]'))renderFeedback();});
+
+/* ================= WORKSHOP TOOLS & 5S (read-only for trainees) ================= */
+async function mountFacility(){
+  const box=document.getElementById('facBox');if(!box)return;
+  if(!session||DEMO){box.innerHTML=`<p class="muted" style="font-size:13px">Log in to see the workshop's tools and equipment and the latest 5S housekeeping score.</p>`;return;}
+  box.innerHTML=`<p class="muted">Loading…</p>`;
+  const r=await api("facilitySummary",{id:session.id,token:session.token});
+  if(!document.getElementById('facBox'))return;
+  if(!r.ok){box.innerHTML=`<p class="muted">${esc(r.error)}</p>`;return;}
+  const f=r.last5S,C={"Serviceable":"#1d6b3d","For repair":"#b45309","Unserviceable":"#8a0b1f"};
+  const cats=[...new Set(r.items.map(x=>x.cat))];
+  box.innerHTML=`${f?`<div class="tile" style="margin:6px 0"><b>✨ Latest 5S check: ${f.pct}%</b><span class="muted" style="font-size:12.5px">${esc(f.area)} · ${esc(fmtDate(f.date))} · Sort ${f.s[0]} · Set in order ${f.s[1]} · Shine ${f.s[2]} · Standardize ${f.s[3]} · Sustain ${f.s[4]} (out of 5)</span></div>`:`<p class="muted" style="font-size:13px">No 5S check recorded yet.</p>`}
+   ${r.items.length?`<details class="tipS"><summary>🧰 Tools and equipment (${r.items.length} items · ${r.byCond["Serviceable"]||0} serviceable)</summary><div class="tipB">${cats.map(c=>`<p style="margin:8px 0 2px"><b>${esc(c)}</b></p><table class="rwT">${r.items.filter(x=>x.cat===c).map(x=>`<tr><td>${esc(x.name)}</td><td style="text-align:right;color:#333;font-weight:600">${x.qty} ${esc(x.unit)}</td><td style="text-align:right;color:${C[x.cond]||"#333"}">${esc(x.cond)}</td></tr>`).join("")}</table>`).join("")}
+     <p class="muted" style="font-size:12px">Found a damaged tool? Tell your trainer right away so it can be repaired and recorded.</p></div></details>`:`<p class="muted" style="font-size:13px">The tools and equipment list has not been posted yet.</p>`}`;
+}
 
 /* ================= RPG REWARDS: XP, levels & badges =================
    Worked out on this device from the learner's own records (Self-Assessment, pre-test, Progress Chart,
