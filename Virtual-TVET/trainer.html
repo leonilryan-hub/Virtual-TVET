@@ -60,6 +60,7 @@
   .acts{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
   .acts .row{margin-bottom:8px}
   .acts .row input{max-width:120px}
+  .nabox{margin-top:12px;border:2px solid #f2d36b;background:#fffaf0;border-radius:10px;padding:10px}.nabox .row{margin-top:6px}.nabox .row input,.nabox .row select{max-width:none;width:100%}.nabox .row>div{flex:1;min-width:140px}
   .counts{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
   footer{text-align:center;color:var(--muted);font-size:12px;padding:16px}
   /* Phase 4: Progress Chart */
@@ -334,7 +335,8 @@ function card(x){
   const open=openId===x.id;
   return `<div class="lr" data-id="${esc(x.id)}">
    <div class="h" data-act="toggle"><div class="nm"><b>${esc(x.name)}</b> <span class="code" style="font-size:12px;letter-spacing:0">${esc(x.id)}</span>
-     <small>${esc(sub)}${x.device?` · 📱 device ${esc(x.device)}`:""}${x.lockDays?` · ${x.lockDays}-day lock`:""}${x.paused?` · ⏸ PIN paused`:""}</small></div>
+     <small>${esc(sub)}${x.device?` · 📱 device ${esc(x.device)}`:""}${x.lockDays?` · ${x.lockDays}-day lock`:""}${x.paused?` · ⏸ PIN paused`:""}</small>
+     <small>${x.tip?"🎒 TIP ✔":"🎒 TIP —"} · ${x.contract?"✍️ Contract ✔":"✍️ Contract —"}${x.na&&x.na.status?` · 🏅 NA: <b>${esc(NAL[x.na.status]||x.na.status)}</b>`:""}</small></div>
      <span class="chip st-${x.status}">${STL[x.status]}</span></div>
    ${open?`<div class="acts">
      <div class="row"><div><label>Add days</label><input type="number" min="1" max="3650" id="dExt" value="${S.lockDays||30}"></div>
@@ -349,14 +351,27 @@ function card(x){
        ${x.status==="revoked"?`<button class="btn sm" data-act="restore">↩ Restore access</button>`:`<button class="btn red sm" data-act="revoke">⛔ Revoke</button>`}
      </div>
      <div id="aMsg" class="hidden"></div>
+     <div class="nabox"><b>🏅 National Assessment (NC III)</b>${x.na&&x.na.requested?` <span class="muted" style="font-size:12px">· requested ${esc(x.na.requested)}</span>`:""}
+       <div class="row"><div><label>Status</label><select id="naSt">${["","Requested","Applied","Scheduled","Competent","NYC"].map(k=>`<option value="${k}"${(x.na&&x.na.status||"")===k?" selected":""}>${k?NAL[k]:"— none —"}</option>`).join("")}</select></div>
+         <div><label>Assessment date</label><input type="date" id="naDt" value="${esc(x.na&&x.na.date||"")}"></div></div>
+       <div class="row"><div><label>Assessment center</label><input id="naCt" maxlength="120" value="${esc(x.na&&x.na.center||"")}"></div>
+         <div><label>NC number (if Competent)</label><input id="naNc" maxlength="40" value="${esc(x.na&&x.na.nc||"")}"></div></div>
+       <div class="row"><div><label>Note</label><input id="naNt" maxlength="160" value="${esc(x.na&&x.na.note||"")}"></div>
+         <div style="flex:0"><button class="btn sm" data-act="saveNA">Save</button></div></div>
+       <div id="naMsg" class="hidden"></div></div>
    </div>`:""}</div>`;
 }
+const NAL={Requested:"Requested by trainee",Applied:"Application filed",Scheduled:"Scheduled",Competent:"Competent (NC issued)",NYC:"Not Yet Competent"};
 $('lSearch').oninput=drawList;$('lFilter').onchange=drawList;$('lReload').onclick=loadLearners;
 let armed={};
 $('lList').onclick=async e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const box=e.target.closest('.lr'),id=box.dataset.id,act=b.dataset.act;
   if(act==="toggle"){openId=openId===id?null:id;drawList();return;}
+  if(act==="saveNA"){const st=$('naSt').value||"clear";b.disabled=true;
+    const r=await tapi("trainerNA",{target:id,status:st,date:$('naDt').value,center:$('naCt').value.trim(),nc:$('naNc').value.trim(),note:$('naNt').value.trim()});
+    b.disabled=false;if(!r.ok){show($('naMsg'),r.error,"err");return;}
+    const x=L.find(y=>y.id===id);x.na=r.na;drawList();show($('naMsg'),"✔ National Assessment saved.","ok");return;}
   const p={target:id,op:act};
   if(act==="extend")p.days=$('dExt').value;
   if(act==="setDays")p.days=$('dSet').value.trim();
