@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Virtual TVET Campus — EIM NC III</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b2a5b">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Virtual TVET">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   :root{
     --navy:#0b2a5b; --blue:#1f5fbf; --gold:#f2b705; --red:#c8102e;
@@ -35,6 +43,18 @@
   #hudBtns{display:flex;gap:6px;pointer-events:auto}
   .hbtn{background:#fff;border:0;border-radius:12px;padding:8px 11px;font-weight:700;color:var(--navy);box-shadow:0 3px 0 rgba(0,0,0,.25);font-size:13px}
   .hbtn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.25)}
+  .xpchip{display:block;margin-top:6px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(242,183,5,.6);border-radius:8px;padding:3px 8px;font-weight:700;font-size:11.5px;text-align:left;cursor:pointer}
+  .xpbar{display:block;height:4px;background:rgba(255,255,255,.25);border-radius:3px;margin-top:3px;overflow:hidden}.xpbar i{display:block;height:100%;background:var(--gold)}
+  #rwPop{position:fixed;left:50%;top:-80px;transform:translateX(-50%);background:linear-gradient(#fff6d6,#ffe9a3);border:3px solid #7a5a00;color:#3d2c00;border-radius:14px;padding:10px 18px;font-size:15px;box-shadow:0 5px 0 rgba(0,0,0,.25);z-index:9999;transition:top .45s cubic-bezier(.2,1.4,.4,1);pointer-events:none;text-align:center;max-width:92vw}
+  #rwPop.show{top:14px}
+  .rwTop{display:flex;gap:14px;align-items:center;background:#fffaf0;border:2px solid #f2d36b;border-radius:14px;padding:12px;margin-bottom:10px}
+  .rwLv{width:62px;height:62px;border-radius:50%;background:radial-gradient(#ffe27a,#e0a800);color:#3d2c00;display:grid;place-items:center;font-weight:900;font-size:18px;box-shadow:inset 0 -4px 0 rgba(0,0,0,.18)}
+  .rwBar{height:10px;background:#efe6cc;border-radius:6px;overflow:hidden;margin:6px 0 4px}.rwBar i{display:block;height:100%;background:linear-gradient(90deg,#f2b705,#e08a1e)}
+  .rwBadges{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+  .rwB{border:2px dashed #cfd5df;border-radius:12px;padding:8px;text-align:center;background:#f7f8fa;color:#8a93a3}
+  .rwB span{font-size:26px;display:block;filter:grayscale(1);opacity:.6}.rwB b{display:block;font-size:12.5px}.rwB small{display:block;font-size:11px;line-height:1.3;margin-top:2px}
+  .rwB.on{border:2px solid #f2b705;background:#fffaf0;color:#3d2c00}.rwB.on span{filter:none;opacity:1}
+  .rwT{width:100%;border-collapse:collapse;font-size:13px}.rwT td{border-bottom:1px solid #eee;padding:5px 4px}.rwT td:last-child{text-align:right;font-weight:800;color:#1d6b3d;white-space:nowrap}
   #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(255,253,247,.97);border:3px solid var(--navy);border-radius:14px;padding:10px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 4px 0 rgba(0,0,0,.25);max-width:92vw}
   #toast .t{font-size:14px}
   #toast .t small{display:block;color:var(--muted);font-size:12px}
@@ -191,6 +211,8 @@
   <div class="chip" id="who"></div>
   <div id="hudBtns">
     <button class="hbtn" id="btnMap" title="Campus directory">🗺️ Map</button>
+    <button class="hbtn" id="btnRewards" title="My rewards: XP, levels & badges">🏆</button>
+    <button class="hbtn hidden" id="btnInstall" title="Install the campus as an app">📲</button>
     <button class="hbtn" id="btnAvatar" title="Change avatar">🧑‍🔧</button>
     <button class="hbtn" id="btnHelp" title="How to play">?</button>
   </div>
@@ -228,7 +250,7 @@
         <button class="btn gold big" id="startBtn">Enter Campus ▶</button>
       </div>
     </div>
-    <div class="credit">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu · Version 1.0</div>
+    <div class="credit">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu · Version 1.1</div>
   </div>
 </div>
 
@@ -632,9 +654,9 @@ let session=null; // {id, token, learner, access}
 function saveSession(s){session=s;remembered={id:s.id,learner:s.learner};
   store.set("vtvet_session",DEMO?s:remembered);
   if(!DEMO)sstore.set("vtvet_tok",{id:s.id,token:s.token,access:s.access||null});
-  if(s&&s.learner&&s.learner.avatar&&s.learner.avatar.hat!==undefined){av=Object.assign(av,s.learner.avatar);store.set("vtvet_avatar",av);}setWho();}
+  if(s&&s.learner&&s.learner.avatar&&s.learner.avatar.hat!==undefined){av=Object.assign(av,s.learner.avatar);store.set("vtvet_avatar",av);}setWho();setTimeout(()=>refreshRewards(true,true),600);}
 function setAccess(a){if(!session||!a)return;session.access=a;if(!DEMO)sstore.set("vtvet_tok",{id:session.id,token:session.token,access:a});setWho();}
-function lockSession(){if(typeof lmsOpen!=="undefined"&&lmsOpen)closeLms();session=null;sstore.del("vtvet_tok");records={sag:{},pretest:{},needs:{},loaded:false};setWho();}
+function lockSession(){if(typeof lmsOpen!=="undefined"&&lmsOpen)closeLms();session=null;sstore.del("vtvet_tok");records={sag:{},pretest:{},needs:{},loaded:false};try{prog=null;}catch(e){}setWho();}
 function logout(){lockSession();remembered=null;try{localStorage.removeItem("vtvet_session")}catch(e){}setWho();}
 function accessOk(){
   if(!session)return false;
@@ -883,7 +905,7 @@ function renderSSA(note){
     </ol>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
       <button class="btn ${done?"alt":"gold"}" id="goTest">${done?"Retake Learner-Type Test":"Take the Learner-Type Test ▶"}</button>
-      ${done&&accessOk()?`<button class="btn" data-goto="iaa">📋 Go to Institutional Assessment</button>`:""}${DEMO?"":`<button class="btn alt" data-certs="1">🎓 My Certificates</button>`}<button class="btn alt" id="goOut">${DEMO?"Log out":"🔒 Lock & log out"}</button>
+      ${done&&accessOk()?`<button class="btn" data-goto="iaa">📋 Go to Institutional Assessment</button>`:""}${DEMO?"":`<button class="btn alt" data-certs="1">🎓 My Certificates</button>`}<button class="btn alt" data-rewards="1">🏆 My Rewards</button><button class="btn alt" id="goOut">${DEMO?"Log out":"🔒 Lock & log out"}</button>
     </div>${demoNote()}`);
   drawTrainee(document.getElementById('idCv').getContext('2d'),35,72,1.25,"down",0,av);
   document.getElementById('goTest').onclick=renderTest;
@@ -1616,7 +1638,7 @@ const AREA_CONTENT={
  }
 };
 function openArea(a){
-  curArea=a;
+  curArea=a;noteArea(a.id);
   if(a.id!=="ssa"&&a.id!=="tra"&&!accessOk()){openPanel(a.roof,a.icon,a.name,a.sub,"");renderLocked(a);return;}
   openPanel(a.roof,a.icon,a.name,a.sub,AREA_CONTENT[a.id]());
   if(a.id==="cll")setTimeout(()=>{
@@ -1647,23 +1669,156 @@ function openDirectory(){
   setTimeout(()=>document.querySelector('.dir').onclick=e=>{const b=e.target.closest('button');if(!b)return;
     const a=AREAS.find(x=>x.id===b.dataset.id);player.x=a.x+a.w/2;player.y=a.y+a.h+28;player.dir="up";closePanel();});
 }
+/* ================= RPG REWARDS: XP, levels & badges =================
+   Worked out on this device from the learner's own records (Self-Assessment, pre-test, Progress Chart,
+   TRB confirmations) plus the campus areas visited. Nothing extra is stored in the Google Sheet. */
+const XP_RULES={reg:50,type:50,area:10,sag:20,pre:30,loRPL:15,loC:25,unitC:100,ack:10};
+const LEVELS=[[0,"Apprentice"],[200,"Electrical Helper"],[600,"Junior Electrician"],[1300,"Electrician"],[2300,"Senior Electrician"],[3500,"Master Electrician"]];
+const BADGES=[
+ ["enrolled","🪪","Enrolled","Register at the Support Service Area"],
+ ["type","🧠","Know Yourself","Finish the learner-type test"],
+ ["explorer","🧭","Campus Explorer","Visit all 9 areas of the campus"],
+ ["sag","📝","Self-Assessor","Finish a Self-Assessment Guide"],
+ ["pre","🎯","Pre-test Taker","Finish a pre-test"],
+ ["rpl","♻️","Prior Learning","Meet a learning outcome through RPL"],
+ ["first","⭐","First Competency","Be marked Competent in a unit"],
+ ["ack","📒","Record Keeper","Confirm a competency in your Trainee's Record Book"],
+ ["basic","🧱","Basic Complete","Competent in all Basic units"],
+ ["common","🤝","Common Complete","Competent in all Common units"],
+ ["core","⚡","Core Complete","Competent in all Core units"],
+ ["collector","🎓","Certificate Collector","Earn 5 Certificates of Achievement"],
+ ["qualified","🏆","Fully Qualified","Competent in every unit of the qualification"]
+];
+const rwKey=()=>"vtvet_rw_"+(session?session.id:remembered?remembered.id:"guest");
+function rwGet(){return store.get(rwKey(),{areas:[],xp:0,level:0,badges:[]});}
+function rwSet(v){store.set(rwKey(),v);}
+function levelOf(xp){let i=0;LEVELS.forEach((l,k)=>{if(xp>=l[0])i=k;});return i;}
+function noteArea(id){const r=rwGet();if(!r.areas.includes(id)){r.areas.push(id);rwSet(r);if(session)refreshRewards(true);else setWho();}}
+function computeRewards(rw,P){
+  const items=[],add=(k,n,t)=>{if(n>0)items.push({k,n,t});};
+  const reg=!!(session||(remembered&&!DEMO));
+  if(reg)add("reg",XP_RULES.reg,"Registered");
+  const lt=session&&session.learner&&session.learner.learnerType;
+  if(lt)add("type",XP_RULES.type,"Learner-type test");
+  add("area",XP_RULES.area*rw.areas.length,`Areas visited (${rw.areas.length}/9)`);
+  let sag=0,pre=0,rpl=0,loC=0,uC=0,ack=0;const cats={Basic:[0,0],Common:[0,0],Core:[0,0]};
+  units.forEach(u=>{if(cats[u.category])cats[u.category][1]++;});
+  if(records&&records.loaded){units.forEach(u=>{if(records.sag[u.code])sag++;if(records.pretest[u.code])pre++;});}
+  if(P&&P.progress){Object.keys(P.progress).forEach(code=>{const x=P.progress[code];
+    (x.los||[]).forEach(l=>{if(l.s==="C")loC++;else if(l.s==="R")rpl++;});
+    if(x.s==="C"){uC++;const u=unitBy(code);if(u&&cats[u.category])cats[u.category][0]++;}
+    if(x.ack)ack++;});}
+  add("sag",XP_RULES.sag*sag,`Self-Assessments (${sag})`);
+  add("pre",XP_RULES.pre*pre,`Pre-tests (${pre})`);
+  add("rpl",XP_RULES.loRPL*rpl,`Outcomes met through RPL (${rpl})`);
+  add("loC",XP_RULES.loC*loC,`Learning outcomes Competent (${loC})`);
+  add("unitC",XP_RULES.unitC*uC,`Units Competent (${uC})`);
+  add("ack",XP_RULES.ack*ack,`TRB confirmations (${ack})`);
+  const xp=items.reduce((s,i)=>s+i.n,0);
+  const full=c=>cats[c][1]>0&&cats[c][0]===cats[c][1];
+  const got={enrolled:reg,type:!!lt,explorer:rw.areas.length>=AREAS.length,sag:sag>0,pre:pre>0,rpl:rpl>0,first:uC>0,ack:ack>0,
+    basic:full("Basic"),common:full("Common"),core:full("Core"),collector:uC>=5,qualified:units.length>0&&uC>=units.length};
+  return{xp,items,badges:BADGES.filter(b=>got[b[0]]).map(b=>b[0])};
+}
+let rwBusy=false;
+async function refreshRewards(quiet,fresh){
+  if(rwBusy)return rwGet();rwBusy=true;
+  try{
+    const rw=rwGet();let P=prog;
+    if(session&&accessOk()){try{await loadRecords();if(!P||fresh)P=await loadProgress();}catch(e){}}
+    const has=!!(P&&P.progress);
+    if(!has&&rw.hasProg&&session){setWho();return rw;} // locked or offline: keep the last saved points
+    const c=computeRewards(rw,has?P:null);if(has)rw.hasProg=1;
+    const lv=levelOf(c.xp),newB=c.badges.filter(b=>!rw.badges.includes(b));
+    const up=lv>rw.level&&rw.xp>0;
+    Object.assign(rw,{xp:c.xp,level:lv,badges:c.badges,items:c.items});rwSet(rw);setWho();
+    if(!quiet||up||newB.length){
+      if(up)rwPop(`⬆️ Level up! You are now a <b>${LEVELS[lv][1]}</b>`);
+      else if(newB.length&&rw.seen){const b=BADGES.find(x=>x[0]===newB[0]);rwPop(`${b[1]} New badge: <b>${b[2]}</b>`);}
+    }
+    if(!rw.seen){rw.seen=1;rwSet(rw);}
+    return rw;
+  }finally{rwBusy=false;}
+}
+function rwPop(html){
+  let el=document.getElementById('rwPop');
+  if(!el){el=document.createElement('div');el.id='rwPop';document.body.appendChild(el);}
+  el.innerHTML=html;el.className='show';clearTimeout(el._t);el._t=setTimeout(()=>el.className='',3800);
+}
+function xpLine(){
+  const rw=rwGet(),lv=rw.level||0,cur=LEVELS[lv][0],nx=LEVELS[lv+1];
+  const pct=nx?Math.round((rw.xp-cur)/(nx[0]-cur)*100):100;
+  return`<button class="xpchip" id="xpBtn" title="My rewards">⭐ Lv ${lv+1} · ${esc(LEVELS[lv][1])} · ${rw.xp} XP<span class="xpbar"><i style="width:${Math.max(3,Math.min(100,pct))}%"></i></span></button>`;
+}
+async function openRewards(){
+  openPanel("#7a5a00","🏆","My Rewards","XP, levels & badges","<p class='muted'>Counting your XP…</p>");
+  const rw=await refreshRewards(true,true),lv=rw.level||0,nx=LEVELS[lv+1];
+  const pct=nx?Math.round((rw.xp-LEVELS[lv][0])/(nx[0]-LEVELS[lv][0])*100):100;
+  const locked=session&&!accessOk();
+  document.getElementById('pBody').innerHTML=`
+   <div class="rwTop"><div class="rwLv">Lv ${lv+1}</div><div style="flex:1"><b style="font-size:17px">${esc(LEVELS[lv][1])}</b>
+    <div class="rwBar"><i style="width:${Math.max(3,pct)}%"></i></div>
+    <div class="muted" style="font-size:12.5px">${rw.xp} XP${nx?` · ${nx[0]-rw.xp} XP to <b>${esc(nx[1])}</b>`:" · Highest level reached!"}</div></div></div>
+   ${!session&&!DEMO?`<div class="err" style="background:#eef3fb;color:#1f4f9f;border-color:#c9d6f0">Log in at the Support Service Area to count the XP from your assessments and competencies.</div>`:""}
+   ${locked?`<div class="err" style="background:#fff3c4;color:#7a5a00;border-color:#f2d36b">Your access is locked, so these are your last saved points. They update when your campus is unlocked again.</div>`:""}
+   <h3>Badges (${rw.badges.length}/${BADGES.length})</h3>
+   <div class="rwBadges">${BADGES.map(b=>{const on=rw.badges.includes(b[0]);return`<div class="rwB${on?" on":""}" title="${esc(b[3])}"><span>${on?b[1]:"🔒"}</span><b>${esc(b[2])}</b><small>${esc(b[3])}</small></div>`;}).join("")}</div>
+   <h3>Where your XP comes from</h3>
+   <table class="rwT">${(rw.items||[]).map(i=>`<tr><td>${esc(i.t)}</td><td>+${i.n}</td></tr>`).join("")||`<tr><td colspan="2" class="muted">No XP yet. Start by registering at the Support Service Area.</td></tr>`}</table>
+   <h3>How to earn XP</h3>
+   <p style="font-size:13px;line-height:1.6">🪪 Register +${XP_RULES.reg} · 🧠 Learner-type test +${XP_RULES.type} · 🧭 Each campus area +${XP_RULES.area}<br>
+   📝 Self-Assessment +${XP_RULES.sag} and 🎯 pre-test +${XP_RULES.pre} per unit · ♻️ Outcome met through RPL +${XP_RULES.loRPL}<br>
+   ✅ Learning outcome Competent +${XP_RULES.loC} · 🎓 Unit Competent +${XP_RULES.unitC} · 📒 TRB confirmation +${XP_RULES.ack}</p>
+   <h3>Levels</h3><p style="font-size:13px">${LEVELS.map((l,i)=>`${i===lv?"<b>":""}Lv ${i+1} ${esc(l[1])} (${l[0]} XP)${i===lv?"</b>":""}`).join(" · ")}</p>`;
+}
+document.getElementById('pBody').addEventListener('click',e=>{if(e.target.closest('[data-rewards]'))openRewards();});
+
+/* ================= INSTALL AS PHONE APP ================= */
+let installEvt=null;
+const isStandalone=()=>window.matchMedia&&matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+function showInstallBtn(){const b=document.getElementById('btnInstall');if(b)b.classList.toggle('hidden',isStandalone()||!(installEvt||isIOS()));}
+if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost")){
+  window.addEventListener('load',()=>{try{navigator.serviceWorker.register("app-sw.js",{scope:"./"}).catch(()=>{});}catch(e){}});
+}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;showInstallBtn();});
+window.addEventListener('appinstalled',()=>{installEvt=null;showInstallBtn();rwPop("📲 The campus is now on your home screen!");});
+function installHelp(){
+  if(isStandalone())return`<p>✅ You are already using the campus as an app.</p>`;
+  if(installEvt)return`<p>Put the campus on your home screen. It opens full-screen like an app, and loads faster.</p><button class="btn gold" id="instGo">📲 Install the app</button>`;
+  if(isIOS())return`<p><b>iPhone / iPad (Safari):</b> tap the <b>Share</b> button <span style="font-size:18px">⎋</span> at the bottom, then <b>Add to Home Screen</b>, then <b>Add</b>.</p>`;
+  return`<p><b>Android (Chrome):</b> tap the <b>⋮</b> menu at the top right, then <b>Add to Home screen</b> or <b>Install app</b>.<br><b>PC (Chrome or Edge):</b> click the install icon <b>⊕</b> at the right end of the address bar.</p>`;
+}
+async function openInstall(){
+  openPanel("#0b2a5b","📲","Install the campus app","Open the Virtual TVET Campus from your home screen",installHelp()+
+   `<p class="muted" style="font-size:12.5px;margin-top:12px">The app still needs internet for your records, CBLMs, simulators and certificates. Your PIN is still asked every time you open it.</p>`);
+  const g=document.getElementById('instGo');
+  if(g)g.onclick=async()=>{const ev=installEvt;if(!ev)return;installEvt=null;ev.prompt();try{await ev.userChoice;}catch(e){}showInstallBtn();closePanel();};
+}
+document.getElementById('btnInstall').onclick=openInstall;
+document.getElementById('pBody').addEventListener('click',e=>{if(e.target.closest('[data-install]'))openInstall();});
+showInstallBtn();
+
 function openHelp(){
   openPanel("#1f5fbf","❔","How to play","Moving around the Virtual TVET Campus",
    `<p><b>On a PC:</b> walk with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or the arrow keys. Press <kbd>Enter</kbd> or <kbd>E</kbd> at a door to go in. <kbd>M</kbd> opens the map.</p>
    <p><b>On a phone:</b> touch and drag anywhere on the screen to walk (a joystick appears). Tap <b>Enter ▶</b> when you reach a door.</p>
    <p><b>In a hurry?</b> Use <b>🗺️ Map</b> to jump straight to any area.</p>
+   <p><b>🏆 Rewards:</b> earn XP and badges as you explore the campus, take your Self-Assessments and pre-tests, and become Competent. Level up from <i>Apprentice</i> to <i>Master Electrician</i>. Tap <b>🏆</b> or the ⭐ bar under your name to see them.</p>
+   <p><b>📲 Use it like an app:</b> put the campus on your phone's home screen. <button class="btn alt" data-install="1" style="padding:4px 10px;font-size:12.5px">How to install</button></p>
    <h3>The 9 CBT areas</h3><p>The campus follows TESDA's competency-based training workshop: Practical Work Area, Institutional Assessment Area, Learning Resource Center, Contextual Learning Lab, Computer Lab, Distance Learning Area, Trainer's Resource Area, Quality Control Area and Support Service Area.</p>
    <p class="muted" style="font-size:12px;margin-top:14px">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu</p>`);
 }
 document.getElementById('btnMap').onclick=openDirectory;
 document.getElementById('btnHelp').onclick=openHelp;
+document.getElementById('btnRewards').onclick=openRewards;
 document.getElementById('btnAvatar').onclick=()=>{initAvatarUI();document.getElementById('start').classList.remove('hidden');};
 
 function setWho(){setPanelWm();const w=document.getElementById('who');const n=nextStep();
   const nm=session?fullName(session.learner)||av.name:remembered&&!DEMO?fullName(remembered.learner)||av.name:(av.name||"Visitor");
   const st=DEMO?"":accessState(),lk=!DEMO&&(session||remembered)?(st==="active"?` · 🔓 ${session.access.daysLeft}d left`:" · 🔒 Locked"):"";
-  w.innerHTML=`👷 <b>${esc(nm)}</b><br>${session?esc(session.id):remembered&&!DEMO?esc(remembered.id):"Not registered"} · ${esc(CAT.short||CAT.qualification)}${lk}<button class="quest" id="questBtn">${n.i} Next: ${esc(n.t)} ▶</button>`;
-  document.getElementById('questBtn').onclick=()=>{goTo(n.a);};}
+  w.innerHTML=`👷 <b>${esc(nm)}</b><br>${session?esc(session.id):remembered&&!DEMO?esc(remembered.id):"Not registered"} · ${esc(CAT.short||CAT.qualification)}${lk}<button class="quest" id="questBtn">${n.i} Next: ${esc(n.t)} ▶</button>${xpLine()}`;
+  document.getElementById('questBtn').onclick=()=>{goTo(n.a);};document.getElementById('xpBtn').onclick=openRewards;}
 document.getElementById('startBtn').onclick=()=>{
   av.name=document.getElementById('nameIn').value.trim().slice(0,24);
   store.set("vtvet_avatar",av);
