@@ -66,6 +66,8 @@
   .nasteps{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.nasteps span{font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;background:#eef0f4;color:#8a93a3}.nasteps span.on{background:#d9f2e2;color:#1d6b3d}
   .jlinks{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}.jlinks a{display:block;border:2px solid #d8dde7;border-radius:10px;padding:8px 10px;text-decoration:none;color:var(--navy);background:#fff}.jlinks a span{display:block;font-size:12px;color:#5b6475}
   .cvform label{display:block;font-weight:700;font-size:12.5px;margin-top:8px}.cvform input,.cvform textarea{width:100%;box-sizing:border-box;padding:8px 10px;border:2px solid #cfd5df;border-radius:10px;font:inherit;font-size:14px;margin-top:3px}
+  .fbq{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;border-bottom:1px dashed #e3e7ef;padding:8px 0;font-size:13.5px}.fbq>div:first-child{flex:1;min-width:200px}
+  .fbr{display:flex;gap:4px}.fbr button{font:inherit;font-weight:900;width:36px;height:34px;border-radius:9px;border:2px solid #cfd5df;background:#fff;color:#556;cursor:pointer}.fbr button.on{background:var(--gold);border-color:#b88a00;color:var(--navy)}
   .rwT{width:100%;border-collapse:collapse;font-size:13px}.rwT td{border-bottom:1px solid #eee;padding:5px 4px}.rwT td:last-child{text-align:right;font-weight:800;color:#1d6b3d;white-space:nowrap}
   #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(255,253,247,.97);border:3px solid var(--navy);border-radius:14px;padding:10px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 4px 0 rgba(0,0,0,.25);max-width:92vw}
   #toast .t{font-size:14px}
@@ -262,7 +264,7 @@
         <button class="btn gold big" id="startBtn">Enter Campus ▶</button>
       </div>
     </div>
-    <div class="credit">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu · Version 1.4</div>
+    <div class="credit">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu · Version 1.5</div>
   </div>
 </div>
 
@@ -1081,6 +1083,7 @@ function nextStep(){
   if(!L.contract)return{t:"Sign your learning contract",a:"ssa",i:"✍️"};
   const na=L.na||{};
   if(na.status&&!L.jip)return{t:"Job Induction Program",a:"ssa",i:"💼"};
+  if(na.status&&!L.fb)return{t:"Rate your training",a:"qca",i:"⭐"};
   if(na.status==="Competent")return{t:"NC III holder! Find a job",a:"ssa",i:"🏆"};
   if(na.status&&na.status!=="NYC")return{t:"National Assessment: "+(NA_LBL[na.status]||[na.status])[0],a:"iaa",i:"🏅"};
   if(prog&&prog.progress&&units.length&&units.every(u=>prog.progress[u.code]&&prog.progress[u.code].s==="C"))return{t:"Request your National Assessment",a:"iaa",i:"🏅"};
@@ -1663,7 +1666,7 @@ const AREA_CONTENT={
  },
  qca(){
    return `<p>Your <b>Progress Chart</b> and <b>Achievement Chart</b> are posted here. They update by themselves from your Self-Assessment and pre-test, and when your trainer confirms your competencies.</p>
-   <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px"><button class="btn gold" data-prog="pc">📈 My Progress Chart</button><button class="btn alt" data-prog="ac">🏅 My Achievement Chart</button><button class="btn alt" data-trb="1">📘 My Record Book (TRB)</button><button class="btn alt" data-certs="1">🎓 My Certificates</button></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px"><button class="btn gold" data-prog="pc">📈 My Progress Chart</button><button class="btn alt" data-prog="ac">🏅 My Achievement Chart</button><button class="btn alt" data-trb="1">📘 My Record Book (TRB)</button><button class="btn alt" data-certs="1">🎓 My Certificates</button><button class="btn alt" data-fb="1">⭐ Rate your training</button></div>
    <h3>Pilot-testing of materials</h3><p class="muted" style="font-size:13px">New and revised materials are pilot-tested here before trainees use them.</p>
    <h3>Module status</h3><div class="mods">${units.map(u=>`<div class="mod cat-${u.category}"><div><span class="code">${esc(u.code)}</span><div class="ttl">${esc(u.title)}</div></div><div class="go"><span class="soon" style="background:#e6f6ec;color:#1d6b3d;border-color:#9fd8b2">Rev 00</span></div></div>`).join("")}</div>`;
  }
@@ -1991,10 +1994,38 @@ async function renderMyAttendance(){
   document.getElementById('maBack').onclick=()=>renderSSA();
 }
 
+/* ================= TRAINING FEEDBACK (Quality Control Area) ================= */
+const FB_SCALE=["Strongly disagree","Disagree","Neutral","Agree","Strongly agree"];
+async function renderFeedback(){
+  if(!session||DEMO){setBody(`<p class="muted">Log in at the Support Service Area to rate your training.</p>`);return;}
+  setBody(`<p class="muted">Loading…</p>`);
+  const r=await api("myFeedback",{id:session.id,token:session.token});
+  if(!r.ok){setBody(`<div class="err">${esc(r.error)}</div>`);return;}
+  const mine=r.mine,q=mine?mine.q.slice():r.items.map(()=>0);let g="";
+  setBody(`<p><b>⭐ Rate your training</b> · help us improve the program. Your trainer sees only the class averages and comments, <b>never your name</b>.</p>
+   ${mine?`<div class="lockbox green"><h4>✔ Thank you!</h4>You sent your feedback on ${esc(fmtDate(mine.date))}. You can update it anytime.</div>`:""}
+   <p class="muted" style="font-size:12.5px">1 = Strongly disagree · 2 = Disagree · 3 = Neutral · 4 = Agree · 5 = Strongly agree</p>
+   <div id="fbList">${r.items.map((it,i)=>{const h=it[0]!==g?`<h4 style="margin:14px 0 4px;color:var(--navy)">${esc(it[0])}</h4>`:"";g=it[0];
+     return`${h}<div class="fbq"><div>${i+1}. ${esc(it[1])}</div><div class="fbr">${[1,2,3,4,5].map(v=>`<button data-q="${i}" data-v="${v}" title="${FB_SCALE[v-1]}" class="${q[i]===v?"on":""}">${v}</button>`).join("")}</div></div>`;}).join("")}</div>
+   <div class="cvform"><label>What did you like most about the training?</label><textarea id="fbL" rows="3" maxlength="500">${esc(mine?mine.liked:"")}</textarea>
+   <label>What should we improve?</label><textarea id="fbI" rows="3" maxlength="500">${esc(mine?mine.improve:"")}</textarea></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn gold" id="fbGo">📨 ${mine?"Update my feedback":"Send my feedback"}</button></div><div id="fbMsg" class="hidden"></div>`);
+  document.getElementById('fbList').onclick=e=>{const b=e.target.closest('[data-q]');if(!b)return;q[+b.dataset.q]=+b.dataset.v;
+    b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));};
+  document.getElementById('fbGo').onclick=async()=>{const miss=q.findIndex(x=>!x);
+    if(miss>=0){show(document.getElementById('fbMsg'),`Please rate statement ${miss+1}.`,"err");document.querySelectorAll('.fbq')[miss].scrollIntoView({block:"center",behavior:"smooth"});return;}
+    const b=document.getElementById('fbGo');b.disabled=true;b.textContent="Sending…";
+    const x=await api("submitFeedback",{id:session.id,token:session.token,q,liked:document.getElementById('fbL').value,improve:document.getElementById('fbI').value});
+    if(!x.ok){b.disabled=false;b.textContent="📨 Send my feedback";show(document.getElementById('fbMsg'),x.error,"err");return;}
+    if(session.learner&&!session.learner.fb){session.learner.fb=true;saveSession(session);}
+    rwPop("⭐ Thank you for your feedback!");renderFeedback();};
+}
+document.getElementById('pBody').addEventListener('click',e=>{if(e.target.closest('[data-fb]'))renderFeedback();});
+
 /* ================= RPG REWARDS: XP, levels & badges =================
    Worked out on this device from the learner's own records (Self-Assessment, pre-test, Progress Chart,
    TRB confirmations) plus the campus areas visited. Nothing extra is stored in the Google Sheet. */
-const XP_RULES={reg:50,tip:50,contract:30,jip:50,naReq:50,nc:300,type:50,area:10,sag:20,pre:30,loRPL:15,loC:25,unitC:100,ack:10};
+const XP_RULES={reg:50,tip:50,contract:30,jip:50,fb:30,naReq:50,nc:300,type:50,area:10,sag:20,pre:30,loRPL:15,loC:25,unitC:100,ack:10};
 const LEVELS=[[0,"Apprentice"],[200,"Electrical Helper"],[600,"Junior Electrician"],[1300,"Electrician"],[2300,"Senior Electrician"],[3500,"Master Electrician"]];
 const BADGES=[
  ["enrolled","🪪","Enrolled","Register at the Support Service Area"],
@@ -2013,6 +2044,7 @@ const BADGES=[
  ["collector","🎓","Certificate Collector","Earn 5 Certificates of Achievement"],
  ["qualified","🏆","Fully Qualified","Competent in every unit of the qualification"],
  ["jip","💼","Job-Ready","Complete the Job Induction Program"],
+ ["fb","⭐","Voice Heard","Rate your training in the Quality Control Area"],
  ["nc3","🥇","NC III Holder","Pass the National Assessment for NC III"]
 ];
 const rwKey=()=>"vtvet_rw_"+(session?session.id:remembered?remembered.id:"guest");
@@ -2031,6 +2063,7 @@ function computeRewards(rw,P){
   if(na.status)add("naReq",XP_RULES.naReq,"National Assessment requested");
   if(na.status==="Competent")add("nc",XP_RULES.nc,"National Certificate (NC III)");
   if(SL.jip)add("jip",XP_RULES.jip,"Job Induction Program");
+  if(SL.fb)add("fb",XP_RULES.fb,"Training feedback");
   add("area",XP_RULES.area*rw.areas.length,`Areas visited (${rw.areas.length}/9)`);
   let sag=0,pre=0,rpl=0,loC=0,uC=0,ack=0;const cats={Basic:[0,0],Common:[0,0],Core:[0,0]};
   units.forEach(u=>{if(cats[u.category])cats[u.category][1]++;});
@@ -2048,7 +2081,7 @@ function computeRewards(rw,P){
   const xp=items.reduce((s,i)=>s+i.n,0);
   const full=c=>cats[c][1]>0&&cats[c][0]===cats[c][1];
   const got={enrolled:reg,type:!!lt,explorer:rw.areas.length>=AREAS.length,sag:sag>0,pre:pre>0,rpl:rpl>0,first:uC>0,ack:ack>0,
-    basic:full("Basic"),common:full("Common"),core:full("Core"),collector:uC>=5,qualified:units.length>0&&uC>=units.length,tip:!!SL.tip,contract:!!SL.contract,nc3:na.status==="Competent",jip:!!SL.jip};
+    basic:full("Basic"),common:full("Common"),core:full("Core"),collector:uC>=5,qualified:units.length>0&&uC>=units.length,tip:!!SL.tip,contract:!!SL.contract,nc3:na.status==="Competent",jip:!!SL.jip,fb:!!SL.fb};
   return{xp,items,badges:BADGES.filter(b=>got[b[0]]).map(b=>b[0])};
 }
 let rwBusy=false;
@@ -2100,7 +2133,7 @@ async function openRewards(){
    <p style="font-size:13px;line-height:1.6">🪪 Register +${XP_RULES.reg} · 🎒 TIP +${XP_RULES.tip} · ✍️ Learning contract +${XP_RULES.contract} · 🧠 Learner-type test +${XP_RULES.type} · 🧭 Each campus area +${XP_RULES.area}<br>
    📝 Self-Assessment +${XP_RULES.sag} and 🎯 pre-test +${XP_RULES.pre} per unit · ♻️ Outcome met through RPL +${XP_RULES.loRPL}<br>
    ✅ Learning outcome Competent +${XP_RULES.loC} · 🎓 Unit Competent +${XP_RULES.unitC} · 📒 TRB confirmation +${XP_RULES.ack}<br>
-   🏅 National Assessment requested +${XP_RULES.naReq} · 💼 Job Induction Program +${XP_RULES.jip} · 🥇 National Certificate (NC III) +${XP_RULES.nc}</p>
+   🏅 National Assessment requested +${XP_RULES.naReq} · 💼 Job Induction Program +${XP_RULES.jip} · ⭐ Training feedback +${XP_RULES.fb} · 🥇 National Certificate (NC III) +${XP_RULES.nc}</p>
    <h3>Levels</h3><p style="font-size:13px">${LEVELS.map((l,i)=>`${i===lv?"<b>":""}Lv ${i+1} ${esc(l[1])} (${l[0]} XP)${i===lv?"</b>":""}`).join(" · ")}</p>`;
 }
 document.getElementById('pBody').addEventListener('click',e=>{if(e.target.closest('[data-rewards]'))openRewards();});
