@@ -77,6 +77,8 @@
         <tr><td>Training period</td><td>${allDates.length ? esc(longD(allDates[0])) + " to " + esc(longD(allDates[allDates.length - 1])) : "—"}</td></tr>
         ${L.learnerType ? `<tr><td>Learning style</td><td>${esc(L.learnerType)}</td></tr>` : ""}
         <tr><td>Trainer(s)</td><td>${esc(trainersUsed.join(", ") || "—")}</td></tr>
+        ${L.tip ? `<tr><td>Training Induction Program</td><td>Attended ${esc(longD(L.tip))}</td></tr>` : ""}
+        ${L.contract ? `<tr><td>Learning contract</td><td>Signed ${esc(longD(L.contract))}</td></tr>` : ""}
       </table>
       <div class="muted">Virtual TVET Campus · printed ${esc(longD(d.today))}</div>
       <div class="credit">${esc(CREDIT)}</div></div>`;
@@ -97,6 +99,7 @@
       ${done.length ? done.map(u => { const p = d.progress[u.code]; return `<tr><td class="c">${esc(u.code)}</td><td>${esc(u.title)}</td><td class="c">${esc(u.cat)}</td><td class="c">${esc(longD(p.d))}</td><td class="c">${esc(trainerName(d, p.by || (p.los.find(x => x.by) || {}).by))}</td></tr>`; }).join("")
         : `<tr><td colspan="5" class="c muted">No unit of competency achieved yet.</td></tr>`}
       </tbody></table>
+      ${L.na && L.na.status ? `<p style="font-size:13px"><b>National Assessment (NC III):</b> ${esc(L.na.status === "NYC" ? "Not Yet Competent" : L.na.status)}${L.na.date ? " · " + esc(longD(L.na.date)) : ""}${L.na.center ? " · " + esc(L.na.center) : ""}${L.na.nc ? " · NC No. " + esc(L.na.nc) : ""}</p>` : ""}
       <p><b>${c.C} of ${n}</b> units of competency achieved · ${c.R} ready for Institutional Competency Evaluation · ${c.P + c.N} in training · ${c[""]} not started.</p>`;
     const cert = `<h2>4. Certification</h2>
       <p style="font-size:13px;line-height:1.7">This is to certify that <b>${esc(L.name)}</b> (Trainee ID ${esc(L.id)}) has achieved <b>${c.C} of ${n}</b> units of competency of <b>${esc(L.qualification)}</b>, as recorded in this Trainee's Record Book, as of ${esc(longD(d.today))}.</p>
