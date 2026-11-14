@@ -64,6 +64,8 @@
   .ok{background:#e6f6ec;color:#1d6b3d;border:1px solid #a9dcb9;border-radius:10px;padding:8px 10px;font-size:13.5px;margin:10px 0}
   .nacard{margin:10px 0;border:2px solid #f2d36b;background:#fffaf0}.nacard p{font-size:13.5px;margin:6px 0}
   .nasteps{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.nasteps span{font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;background:#eef0f4;color:#8a93a3}.nasteps span.on{background:#d9f2e2;color:#1d6b3d}
+  .jlinks{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}.jlinks a{display:block;border:2px solid #d8dde7;border-radius:10px;padding:8px 10px;text-decoration:none;color:var(--navy);background:#fff}.jlinks a span{display:block;font-size:12px;color:#5b6475}
+  .cvform label{display:block;font-weight:700;font-size:12.5px;margin-top:8px}.cvform input,.cvform textarea{width:100%;box-sizing:border-box;padding:8px 10px;border:2px solid #cfd5df;border-radius:10px;font:inherit;font-size:14px;margin-top:3px}
   .rwT{width:100%;border-collapse:collapse;font-size:13px}.rwT td{border-bottom:1px solid #eee;padding:5px 4px}.rwT td:last-child{text-align:right;font-weight:800;color:#1d6b3d;white-space:nowrap}
   #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(255,253,247,.97);border:3px solid var(--navy);border-radius:14px;padding:10px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 4px 0 rgba(0,0,0,.25);max-width:92vw}
   #toast .t{font-size:14px}
@@ -260,7 +262,7 @@
         <button class="btn gold big" id="startBtn">Enter Campus ▶</button>
       </div>
     </div>
-    <div class="credit">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu · Version 1.2</div>
+    <div class="credit">Developed by LEONIL RYAN L. DELA PEÑA, Senior TESD Specialist, RTC-Cebu · Version 1.3</div>
   </div>
 </div>
 
@@ -817,7 +819,7 @@ function uuid(){return (crypto.randomUUID?crypto.randomUUID():String(Date.now())
 async function demoApi(action,p){
   if(["getAssessments","saveSAG","scorePretest"].includes(action))return demoAssess(action,p);
   const db=store.get("vtvet_demo_db",{learners:[],types:[]});
-  const view=r=>({id:r.id,firstName:r.profile.firstName,lastName:r.profile.lastName,qualification:r.profile.qualification,learnerType:r.learnerType||"",avatar:r.avatar||{},tip:r.tip||"",contract:r.contract||"",na:{status:""}});
+  const view=r=>({id:r.id,firstName:r.profile.firstName,lastName:r.profile.lastName,qualification:r.profile.qualification,learnerType:r.learnerType||"",avatar:r.avatar||{},tip:r.tip||"",contract:r.contract||"",jip:r.jip||"",na:{status:""}});
   const norm=s=>String(s||"").trim().toLowerCase().replace(/\s+/g," ");
   const authd=()=>db.learners.find(r=>r.id===String(p.id||"").toUpperCase()&&r.token===p.token);
   if(action==="register"){
@@ -837,8 +839,8 @@ async function demoApi(action,p){
   if(action==="me"){const r=authd();return r?{ok:true,learner:view(r)}:{ok:false,error:"Session expired. Please log in again."};}
   if(action==="saveLearnerType"){const r=authd();if(!r)return{ok:false,error:"Session expired. Please log in again."};
     r.learnerType=p.result.dominant;db.types.push(Object.assign({id:r.id,date:new Date().toISOString()},p.result));store.set("vtvet_demo_db",db);return{ok:true,learner:view(r)};}
-  if(action==="completeTIP"||action==="signContract"){const r=authd();if(!r)return{ok:false,error:"Session expired. Please log in again."};
-    const k=action==="completeTIP"?"tip":"contract";if(!r[k])r[k]=new Date().toISOString().slice(0,10);store.set("vtvet_demo_db",db);return{ok:true,learner:view(r)};}
+  if(action==="completeTIP"||action==="signContract"||action==="completeJIP"){const r=authd();if(!r)return{ok:false,error:"Session expired. Please log in again."};
+    const k=action==="completeTIP"?"tip":action==="completeJIP"?"jip":"contract";if(!r[k])r[k]=new Date().toISOString().slice(0,10);store.set("vtvet_demo_db",db);return{ok:true,learner:view(r)};}
   return{ok:false,error:"Unknown action."};
 }
 
@@ -919,6 +921,7 @@ function renderSSA(note){
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
       <button class="btn ${l.tip?"alt":"gold"}" id="goTip">🎒 ${l.tip?"Training Induction Program":"Start the Training Induction Program ▶"}</button>
       <button class="btn ${l.contract||!l.tip?"alt":"gold"}" id="goContract">✍️ ${l.contract?"My Learning Contract":"Learning Contract"}</button>
+      <button class="btn ${l.jip||!(l.na&&l.na.status)?"alt":"gold"}" id="goJip">💼 Job Induction Program${l.jip?" ✔":""}</button>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
       <button class="btn ${done||!l.tip?"alt":"gold"}" id="goTest">${done?"Retake Learner-Type Test":"Take the Learner-Type Test ▶"}</button>
@@ -926,7 +929,7 @@ function renderSSA(note){
     </div>${demoNote()}`);
   drawTrainee(document.getElementById('idCv').getContext('2d'),35,72,1.25,"down",0,av);
   document.getElementById('goTest').onclick=renderTest;
-  document.getElementById('goTip').onclick=renderTIP;document.getElementById('goContract').onclick=renderContract;
+  document.getElementById('goTip').onclick=renderTIP;document.getElementById('goContract').onclick=renderContract;document.getElementById('goJip').onclick=renderJIP;
   document.getElementById('goOut').onclick=()=>{if(DEMO)logout();else lockSession();renderSSA();};
   wireLockBox();
 }
@@ -1076,7 +1079,8 @@ function nextStep(){
   if(!Object.keys(records.pretest).length)return{t:"Take a unit pre-test",a:"iaa",i:"📝"};
   if(!L.contract)return{t:"Sign your learning contract",a:"ssa",i:"✍️"};
   const na=L.na||{};
-  if(na.status==="Competent")return{t:"NC III holder! Get job-ready",a:"ssa",i:"🏆"};
+  if(na.status&&!L.jip)return{t:"Job Induction Program",a:"ssa",i:"💼"};
+  if(na.status==="Competent")return{t:"NC III holder! Find a job",a:"ssa",i:"🏆"};
   if(na.status&&na.status!=="NYC")return{t:"National Assessment: "+(NA_LBL[na.status]||[na.status])[0],a:"iaa",i:"🏅"};
   if(prog&&prog.progress&&units.length&&units.every(u=>prog.progress[u.code]&&prog.progress[u.code].s==="C"))return{t:"Request your National Assessment",a:"iaa",i:"🏅"};
   return{t:"Study your training gaps",a:"lrc",i:"📚"};
@@ -1835,10 +1839,132 @@ async function mountNaCard(){
     session.learner=r.learner;saveSession(session);rwPop("🏅 National Assessment requested. Your trainer will contact you.");mountNaCard();};
 }
 
+/* ================= JOB INDUCTION PROGRAM (JIP) · get job-ready ================= */
+const JIP=[
+ {id:"ready",icon:"🧰",t:"Being job-ready: knowledge, skills and attitude",b:`<p>Employers hire people who have the right <b>knowledge, skills and attitude (KSA)</b>. Your NC III and Certificates of Achievement show your skills. Your attitude shows from the first day.</p>
+  <ul class="tipl"><li><b>Attitudes employers look for:</b> punctual, honest, safety-minded, willing to learn, respectful, works well in a team, finishes the job.</li>
+  <li><b>Attitudes that cost people their jobs:</b> coming late or absent without notice, ignoring safety rules, using the phone during work, gossip and arguments, leaving work unfinished, not following instructions.</li>
+  <li><b>Safety, Health, Environment and Quality (SHEQ):</b> learn your employer's SHEQ policy on day one. On electrical work: PPE always, lock-out/tag-out, test before touch, follow the Philippine Electrical Code.</li></ul>`},
+ {id:"ojt",icon:"🦺",t:"On-the-job training (OJT): do's and don'ts",b:`<div class="grid2"><div><p><b>✅ Do</b></p><ul class="tipl"><li>Report on time, in proper uniform and PPE.</li><li>Follow your supervisor and the company's rules.</li><li>Ask before using tools or equipment you don't know.</li><li>Keep your OJT logbook / daily record updated and signed.</li><li>Treat every OJT day as a job interview.</li></ul></div>
+  <div><p><b>❌ Don't</b></p><ul class="tipl"><li>Work on a live circuit or without supervision.</li><li>Take photos or share company information without permission.</li><li>Leave the work area without telling your supervisor.</li><li>Borrow or take company tools or materials home.</li><li>Argue with clients or co-workers. Report problems to your supervisor.</li></ul></div></div>`},
+ {id:"apply",icon:"📄",t:"Your application letter and résumé",b:`<ul class="tipl"><li>Keep your <b>résumé</b> to 1 to 2 pages: contact details, objective, skills, NC and certificates, education, training, experience, references.</li>
+  <li>Write a short <b>application letter</b> for each job: the position, why you fit, and that you are available for an interview.</li>
+  <li>Use a professional e-mail address and a decent photo if one is asked.</li>
+  <li>Bring copies of your <b>NC III</b>, Certificates of Achievement, valid IDs and other documents the employer asks for.</li></ul>
+  <p>👉 Use the <b>Résumé Builder</b> below. It fills in your name, competencies and certificates for you.</p>`},
+ {id:"interview",icon:"🤝",t:"Winning the job interview",b:`<ul class="tipl"><li><b>Before:</b> learn about the company, prepare your documents, plan your route, and arrive 15 minutes early.</li>
+  <li><b>During:</b> dress neatly, greet properly, keep eye contact, answer clearly and honestly, and give examples from your training and OJT.</li>
+  <li><b>Skills test:</b> electrical employers often give a practical test. Work safely and neatly, exactly as in your assessments.</li>
+  <li><b>After:</b> say thank you, and follow up after a few days if you have not heard from them.</li></ul>
+  <p>👉 Practise with the <b>Mock Interview</b> below.</p>`},
+ {id:"find",icon:"🔎",t:"Where to find jobs",b:`<ul class="tipl"><li><b>PhilJobNet</b> (philjobnet.gov.ph): the government's free online job-matching site. Create your account and upload your résumé.</li>
+  <li><b>PESO</b>: the Public Employment Service Office of your city or municipality, which holds job fairs and referrals.</li>
+  <li><b>TESDA and this center:</b> job fairs and employer referrals for graduates. Ask your trainer or the center's job placement staff.</li>
+  <li><b>Working abroad:</b> apply only through agencies licensed by the <b>Department of Migrant Workers (DMW)</b>. Never pay an unlicensed recruiter.</li>
+  <li><b>Start your own business:</b> as an NC III holder you can offer electrical installation and maintenance services. Ask about entrepreneurship programs.</li></ul>`}
+];
+const JIP_Q=[
+ ["Tell me about yourself.","Give a short summary: your name, your training (EIM NC III), your best skills and the kind of work you want. Keep it under one minute."],
+ ["Why do you want to work here?","Show you know the company: what they do and why your skills fit. Mention that you want to learn and grow with them."],
+ ["What electrical work can you do?","Name real tasks from your units: three-phase wiring for power and lighting, motor control systems, data measurement and control, testing and maintenance. Mention your NC III."],
+ ["How do you keep yourself safe on the job?","PPE, lock-out/tag-out, test before touch, following the Philippine Electrical Code and the company's safety rules. Give one example from training."],
+ ["Tell me about a problem you solved.","Use the STAR method: Situation, Task, Action, Result. A troubleshooting job from your training or OJT works well."],
+ ["What are your strengths and weaknesses?","Give a real strength with an example. For a weakness, name one you are already improving and how."],
+ ["How do you work in a team?","Give an example of leading or helping a small team. That is one of your basic competencies (Lead Small Teams)."],
+ ["Where do you see yourself in five years?","Show ambition that fits the job: becoming a leadman or foreman, more certifications, more responsibility."],
+ ["Do you have any questions for us?","Always say yes. Ask about the work, training opportunities, or the next step of the hiring process."]
+];
+const JIP_LINKS=[
+ ["PhilJobNet","https://philjobnet.gov.ph","Free government job matching (DOLE)"],
+ ["TESDA","https://www.tesda.gov.ph","Programs, assessments and announcements"],
+ ["DOLE","https://www.dole.gov.ph","Labor rights, PESO and employment programs"],
+ ["Department of Migrant Workers","https://dmw.gov.ph","Overseas jobs: check if an agency is licensed"]
+];
+function renderJIP(){
+  const l=(session&&session.learner)||{},done=!!l.jip,seen=store.get("vtvet_jip_"+(session?session.id:"guest"),{});
+  setBody(`<p><b>💼 Job Induction Program (JIP)</b> · get ready for OJT and work. Read each part, then tick <b>I understand</b>.</p>
+   ${done?`<div class="lockbox green"><h4>✔ JIP completed</h4>Completed on ${esc(fmtDate(l.jip))}. Come back anytime to update your résumé or practise interviews.</div>`:""}
+   <div id="jipList">${JIP.map((x,i)=>`<details class="tipS" ${i===0&&!done?"open":""}><summary>${x.icon} ${i+1}. ${esc(x.t)} <span class="tipOk" data-jok="${x.id}">${seen[x.id]||done?"✔":""}</span></summary>
+     <div class="tipB">${x.b}<label class="tipC"><input type="checkbox" data-jip="${x.id}" ${seen[x.id]||done?"checked":""}> I understand</label></div></details>`).join("")}</div>
+   <div class="grid2" style="margin-top:12px">
+     <button class="tile" id="jipCv" style="text-align:left;cursor:pointer"><b>📄 Résumé Builder</b><span class="muted" style="font-size:12.5px">Make and print your résumé.</span></button>
+     <button class="tile" id="jipMock" style="text-align:left;cursor:pointer"><b>🎤 Mock Interview</b><span class="muted" style="font-size:12.5px">Practise ${JIP_Q.length} common questions.</span></button></div>
+   <h3>Job links</h3><div class="jlinks">${JIP_LINKS.map(x=>`<a href="${x[1]}" target="_blank" rel="noopener"><b>${esc(x[0])} ↗</b><span>${esc(x[2])}</span></a>`).join("")}</div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+     ${done?"":`<button class="btn gold" id="jipDone" disabled>✔ I have completed the JIP</button>`}
+     <button class="btn alt" id="jipBack">◀ Back</button></div><div id="jipMsg" class="hidden"></div>`);
+  const btn=document.getElementById('jipDone'),all=()=>JIP.every(x=>seen[x.id]);if(btn)btn.disabled=!all();
+  document.getElementById('jipList').onchange=e=>{const c=e.target.closest('[data-jip]');if(!c||!session)return;
+    seen[c.dataset.jip]=c.checked;store.set("vtvet_jip_"+session.id,seen);
+    const ok=document.querySelector(`[data-jok="${c.dataset.jip}"]`);if(ok)ok.textContent=c.checked?"✔":"";
+    if(c.checked){const d=c.closest('details'),n=d.nextElementSibling;d.open=false;if(n&&n.tagName==="DETAILS")n.open=true;}
+    if(btn)btn.disabled=!all();};
+  document.getElementById('jipBack').onclick=()=>renderSSA();
+  document.getElementById('jipCv').onclick=renderResume;
+  document.getElementById('jipMock').onclick=()=>renderMock(0);
+  if(btn)btn.onclick=async()=>{btn.disabled=true;btn.textContent="Saving…";
+    const r=await api("completeJIP",{id:session.id,token:session.token});
+    if(!r.ok){btn.disabled=false;btn.textContent="✔ I have completed the JIP";show(document.getElementById('jipMsg'),r.error,"err");return;}
+    session.learner=r.learner;saveSession(session);rwPop("💼 Job Induction Program completed!");renderJIP();};
+}
+function renderMock(i){
+  const q=JIP_Q[i];
+  setBody(`<p><b>🎤 Mock Interview</b> · question ${i+1} of ${JIP_Q.length}</p>
+   <div class="tile" style="font-size:16px"><b>“${esc(q[0])}”</b></div>
+   <p class="muted" style="font-size:13px">Say your answer out loud, as if the employer is in front of you. You can also type it below to organise your thoughts. Nothing is saved.</p>
+   <textarea id="mkA" rows="4" style="width:100%;box-sizing:border-box;border:2px solid #cfd5df;border-radius:10px;padding:10px;font:inherit"></textarea>
+   <details class="tipS"><summary>💡 Tips for a good answer</summary><div class="tipB">${esc(q[1])}</div></details>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+     ${i>0?`<button class="btn alt" id="mkP">◀ Previous</button>`:""}
+     ${i<JIP_Q.length-1?`<button class="btn gold" id="mkN">Next question ▶</button>`:`<button class="btn gold" id="mkE">✔ Finish practice</button>`}
+     <button class="btn alt" id="mkB">Back to JIP</button></div>`);
+  const g=(id,f)=>{const e=document.getElementById(id);if(e)e.onclick=f;};
+  g('mkP',()=>renderMock(i-1));g('mkN',()=>renderMock(i+1));g('mkB',renderJIP);
+  g('mkE',()=>{rwPop("🎤 Great practice! Do it again before your real interview.");renderJIP();});
+}
+async function renderResume(){
+  const l=(session&&session.learner)||{},key="vtvet_cv_"+(session?session.id:"guest");
+  setBody(`<p class="muted">Loading your competencies and certificates…</p>`);
+  let certs=[];try{const r=await api("myCerts",{id:session.id,token:session.token});if(r.ok)certs=r.certs||[];}catch(e){}
+  let P=null;if(accessOk()){try{P=await loadProgress();}catch(e){}}
+  const pr=P&&P.progress?P.progress:{},comp=units.filter(u=>pr[u.code]&&pr[u.code].s==="C");
+  const na=l.na||{},cv=Object.assign({name:fullName(l),objective:"To work as an industrial electrician where I can use my EIM NC III skills, work safely, and grow with the company.",
+    address:"",phone:"",email:"",education:"",experience:"",references:"Available upon request."},store.get(key,{}));
+  const F=[["name","Full name",1],["address","Address",1],["phone","Mobile number",1],["email","E-mail",1],["objective","Career objective",3],["education","Education (school, course, year)",3],["experience","Work experience / OJT (company, position, dates, duties)",4],["references","References",2]];
+  const autoSkills=(na.status==="Competent"?[`National Certificate: Electrical Installation and Maintenance NC III${na.nc?" (NC No. "+na.nc+")":""}`]:[]).concat(comp.map(u=>u.title));
+  setBody(`<p><b>📄 Résumé Builder</b> · fill in your details, then print or save as PDF.</p>
+   <p class="muted" style="font-size:12.5px">🔒 Your address, phone and e-mail stay on <b>this device only</b>. They are not sent to the campus records.</p>
+   <div class="cvform">${F.map(f=>`<label>${f[1]}</label>${f[2]>1?`<textarea data-cv="${f[0]}" rows="${f[2]}">${esc(cv[f[0]]||"")}</textarea>`:`<input data-cv="${f[0]}" value="${esc(cv[f[0]]||"")}">`}`).join("")}</div>
+   <h4>Added automatically from your campus records</h4>
+   <p style="font-size:13px"><b>Competencies (${autoSkills.length}):</b> ${autoSkills.length?autoSkills.map(esc).join(" · "):`<span class="muted">none yet. They appear here as your trainer marks units Competent.</span>`}</p>
+   <p style="font-size:13px"><b>Certificates of Achievement (${certs.length}):</b> ${certs.length?certs.map(c=>esc(c.title)).join(" · "):`<span class="muted">none yet</span>`}</p>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn gold" id="cvPrint">🖨️ Print / save as PDF</button><button class="btn alt" id="cvBack">◀ Back to JIP</button></div>`);
+  const read=()=>{document.querySelectorAll('[data-cv]').forEach(e=>cv[e.dataset.cv]=e.value.trim());store.set(key,cv);};
+  document.querySelector('.cvform').oninput=read;
+  document.getElementById('cvBack').onclick=()=>{read();renderJIP();};
+  document.getElementById('cvPrint').onclick=()=>{read();const w=window.open("","_blank");if(!w)return;
+    const sec=(t,h)=>h?`<h2>${t}</h2>${h}`:"";
+    const para=v=>v?`<p>${esc(v).replace(/\n/g,"<br>")}</p>`:"";
+    const list=a=>a.length?`<ul>${a.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:"";
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Résumé · ${esc(cv.name)}</title><style>
+      body{font-family:Arial,sans-serif;font-size:12.5px;line-height:1.45;margin:36px;color:#111}h1{font-size:24px;margin:0;color:#0b2a5b}
+      .ct{color:#333;margin:4px 0 14px}h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#0b2a5b;border-bottom:2px solid #f2b705;padding-bottom:2px;margin:16px 0 6px}
+      ul{margin:4px 0;padding-left:18px}p{margin:4px 0}@page{size:A4;margin:14mm}</style></head><body>
+      <h1>${esc(cv.name)}</h1><div class="ct">${[cv.address,cv.phone,cv.email].filter(Boolean).map(esc).join(" · ")}</div>
+      ${sec("Career objective",para(cv.objective))}
+      ${sec("Qualification and competencies",list(autoSkills))}
+      ${sec("Certificates",list(certs.map(c=>`Certificate of Achievement: ${c.title} (${c.no}, ${c.given})`)))}
+      ${sec("Training",`<p>Electrical Installation and Maintenance NC III · TESDA Regional Training Center – Cebu${l.tip?` · started ${esc(fmtDate(l.tip))}`:""}</p>`)}
+      ${sec("Education",para(cv.education))}
+      ${sec("Work experience",para(cv.experience))}
+      ${sec("References",para(cv.references))}
+      <script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script></body></html>`);w.document.close();};
+}
+
 /* ================= RPG REWARDS: XP, levels & badges =================
    Worked out on this device from the learner's own records (Self-Assessment, pre-test, Progress Chart,
    TRB confirmations) plus the campus areas visited. Nothing extra is stored in the Google Sheet. */
-const XP_RULES={reg:50,tip:50,contract:30,naReq:50,nc:300,type:50,area:10,sag:20,pre:30,loRPL:15,loC:25,unitC:100,ack:10};
+const XP_RULES={reg:50,tip:50,contract:30,jip:50,naReq:50,nc:300,type:50,area:10,sag:20,pre:30,loRPL:15,loC:25,unitC:100,ack:10};
 const LEVELS=[[0,"Apprentice"],[200,"Electrical Helper"],[600,"Junior Electrician"],[1300,"Electrician"],[2300,"Senior Electrician"],[3500,"Master Electrician"]];
 const BADGES=[
  ["enrolled","🪪","Enrolled","Register at the Support Service Area"],
@@ -1856,6 +1982,7 @@ const BADGES=[
  ["core","⚡","Core Complete","Competent in all Core units"],
  ["collector","🎓","Certificate Collector","Earn 5 Certificates of Achievement"],
  ["qualified","🏆","Fully Qualified","Competent in every unit of the qualification"],
+ ["jip","💼","Job-Ready","Complete the Job Induction Program"],
  ["nc3","🥇","NC III Holder","Pass the National Assessment for NC III"]
 ];
 const rwKey=()=>"vtvet_rw_"+(session?session.id:remembered?remembered.id:"guest");
@@ -1873,6 +2000,7 @@ function computeRewards(rw,P){
   if(SL.contract)add("contract",XP_RULES.contract,"Learning contract signed");
   if(na.status)add("naReq",XP_RULES.naReq,"National Assessment requested");
   if(na.status==="Competent")add("nc",XP_RULES.nc,"National Certificate (NC III)");
+  if(SL.jip)add("jip",XP_RULES.jip,"Job Induction Program");
   add("area",XP_RULES.area*rw.areas.length,`Areas visited (${rw.areas.length}/9)`);
   let sag=0,pre=0,rpl=0,loC=0,uC=0,ack=0;const cats={Basic:[0,0],Common:[0,0],Core:[0,0]};
   units.forEach(u=>{if(cats[u.category])cats[u.category][1]++;});
@@ -1890,7 +2018,7 @@ function computeRewards(rw,P){
   const xp=items.reduce((s,i)=>s+i.n,0);
   const full=c=>cats[c][1]>0&&cats[c][0]===cats[c][1];
   const got={enrolled:reg,type:!!lt,explorer:rw.areas.length>=AREAS.length,sag:sag>0,pre:pre>0,rpl:rpl>0,first:uC>0,ack:ack>0,
-    basic:full("Basic"),common:full("Common"),core:full("Core"),collector:uC>=5,qualified:units.length>0&&uC>=units.length,tip:!!SL.tip,contract:!!SL.contract,nc3:na.status==="Competent"};
+    basic:full("Basic"),common:full("Common"),core:full("Core"),collector:uC>=5,qualified:units.length>0&&uC>=units.length,tip:!!SL.tip,contract:!!SL.contract,nc3:na.status==="Competent",jip:!!SL.jip};
   return{xp,items,badges:BADGES.filter(b=>got[b[0]]).map(b=>b[0])};
 }
 let rwBusy=false;
@@ -1942,7 +2070,7 @@ async function openRewards(){
    <p style="font-size:13px;line-height:1.6">🪪 Register +${XP_RULES.reg} · 🎒 TIP +${XP_RULES.tip} · ✍️ Learning contract +${XP_RULES.contract} · 🧠 Learner-type test +${XP_RULES.type} · 🧭 Each campus area +${XP_RULES.area}<br>
    📝 Self-Assessment +${XP_RULES.sag} and 🎯 pre-test +${XP_RULES.pre} per unit · ♻️ Outcome met through RPL +${XP_RULES.loRPL}<br>
    ✅ Learning outcome Competent +${XP_RULES.loC} · 🎓 Unit Competent +${XP_RULES.unitC} · 📒 TRB confirmation +${XP_RULES.ack}<br>
-   🏅 National Assessment requested +${XP_RULES.naReq} · 🥇 National Certificate (NC III) +${XP_RULES.nc}</p>
+   🏅 National Assessment requested +${XP_RULES.naReq} · 💼 Job Induction Program +${XP_RULES.jip} · 🥇 National Certificate (NC III) +${XP_RULES.nc}</p>
    <h3>Levels</h3><p style="font-size:13px">${LEVELS.map((l,i)=>`${i===lv?"<b>":""}Lv ${i+1} ${esc(l[1])} (${l[0]} XP)${i===lv?"</b>":""}`).join(" · ")}</p>`;
 }
 document.getElementById('pBody').addEventListener('click',e=>{if(e.target.closest('[data-rewards]'))openRewards();});
